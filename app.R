@@ -36,7 +36,7 @@ ui <- page_navbar(
 # Server
 server <- function(input, output, session) {
   
-  data <- read.table("/Users/Victor/Downloads/summary_lncRNAresist_annotFull_byGene.txt", header = TRUE)
+  data <- read.table("DATA/summary_lncRNAresist_annotFull_byGene.txt", header = TRUE)
   print(data)
   
   # Render the filtered table
