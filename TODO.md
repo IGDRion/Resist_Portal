@@ -10,7 +10,8 @@ First tasks:
 
     - [x] initiate tool on github
     - [ ] visual plan for the tool with options/input data/output data/modules to create
-    - [ ] create module template 
+    - [x] create module template 
+    - [x] filter summary table with a search button + save a variable of the search for further data manipulation on other future files
     - [ ] input files modification ? g
         * gene/tx summary to merge ? + NA values not visible + geneID/geneName on the file 
         * RDS file ? 
