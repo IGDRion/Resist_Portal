@@ -23,6 +23,7 @@ library(stringr)
 # is correctly resolved later (otherwise they won't be found)
 setwd(getSrcDirectory(function(){})[1])
 # Source all modules
+source("./module_search.R")
 source("./module_boxplot.R")
 
 # Ui
@@ -33,36 +34,41 @@ ui <- page_navbar(
   useShinyjs(), 
   
   
-  title = "Resist_Portal",
+  title = "Resist Portal",
   bg = "#70b684",
   inverse = TRUE,
   nav_panel(title = "Main", 
             p(""), # Put text here if you need a text on top of the page
-            
             # Search bar 
-            fluidRow(
-              column(6, align = "right",
-                     textInput(inputId = "searchBar",
-                               label = "Enter a gene ID/name to explore",
-                               placeholder = "Gene ID/name")
-              ),
-              column(6, align = "left",
-                     actionButton(inputId = "submit_btn", label = "Submit", style = "margin-top: 25px;")
-              )
-            ),
-            
+            searchBarUI("searchBar", "submit_btn"),
             # Main summary table
             DTOutput(outputId = "SummaryTable")),
   
   nav_panel(title = "Count",
             p(""),
-            boxplotUI(id = "boxplot1")),
+            # Search bar 
+            searchBarUI("searchBar", "submit_btn"),
+            tabsetPanel(id = "TabsetCount",
+                        tabPanel(title = "Gene",
+                                 # Count table
+                                 DTOutput(outputId = "CountTable"),
+                                 # Boxplot
+                                 boxplotUI(id = "boxplot1")),
+                        tabPanel(title = "Transcript",
+                                 # Count table
+                                 DTOutput(outputId = "CountTableTx"))
+                        )
+            ),
   
   nav_panel(title = "DGE",
-            p("Differential gene expression")),
+            p(""),
+            # Search bar 
+            searchBarUI("searchBar", "submit_btn")),
   
   nav_panel(title = "DTE",
-            p("Differential transcript expression")),
+            p(""),
+            # Search bar 
+            searchBarUI("searchBar", "submit_btn")),
   
   nav_spacer(),
   nav_menu(
@@ -77,8 +83,9 @@ ui <- page_navbar(
 server <- function(input, output, session) {
   
   # Import datasets
-  summary_data <- read.table("./DATA/summary_lncRNAresist_annotFull_byGene.txt", header = TRUE)
-  count_data <- read.table("./DATA/countMtx_rlogNorm_lncRNAresist.Rdata", header = TRUE)
+  summary_data <- read.table("./DATA/summary_lncRNAresist.txt", header = TRUE)
+  count_data <- readRDS("./DATA/resist_transcript_expression.rds") %>%
+    mutate_if(is.numeric, ~round(., digits = 2))
   
   
   ###########################
@@ -97,7 +104,7 @@ server <- function(input, output, session) {
   filtered_summary_data <- reactive({
     if (search_term() != "") {
       summary_data %>% 
-        filter(gene_id == search_term())
+        filter(gene_id == search_term() | gene_name == search_term())
     } else {
       summary_data  # Return full summary_data if search is empty
     }
@@ -119,16 +126,42 @@ server <- function(input, output, session) {
   filtered_count_data <- reactive({
     if (search_term() != "") {
       count_data %>% 
-        filter(row.names(.) == search_term()) # If a gene has been searched, find and take only the row with the name of the gene
+        filter(gene_id == search_term() | gene_name == search_term()) %>% # If a gene has been searched, find and take only the row with the name of the gene
+        group_by(gene_id, gene_name) %>% # Group by gene
+        summarise(across(where(is.numeric), sum, na.rm = TRUE), .groups = 'drop') # Sum all numeric columns
     } else {
-      NULL  # If no gene has been searched, becomes NULL
+      count_data # If no gene has been searched, take the full count data
     }
   })
+  
+  filtered_count_data_tx <- reactive({
+    if (search_term() != "") {
+      count_data %>% 
+        filter(gene_id == search_term() | gene_name == search_term()) # If a gene has been searched, find and take only the row with the name of the gene
+    } else {
+      count_data  # If no gene has been searched, take the full count data
+    }
+  })
+  
+  # Render the table with gene, with filtered_count_data
+  output$CountTable <- renderDT({
+    DT::datatable(filtered_count_data(),
+                  options = list(ordering = TRUE, pageLength = 10),
+                  rownames = TRUE)
+  })
+  
+  # Render the table with transcripts, with filtered_count_data_tx
+  output$CountTableTx <- renderDT({
+    DT::datatable(filtered_count_data_tx(),
+                  options = list(ordering = TRUE, pageLength = 10),
+                  rownames = TRUE)
+  })
+  
 
-  # If filtered_count_data() is not NULL (e.g a gene has been searched)
+  # If search_term() is not NULL (e.g a gene has been searched)
   observe({
     
-    if (!(is.null(filtered_count_data()))) {
+    if (search_term() != "") {
       # Prepare data for the barplot
       count_barplot_data <- melt(filtered_count_data())
       count_barplot_data <- count_barplot_data %>%
@@ -142,9 +175,14 @@ server <- function(input, output, session) {
         )) %>%
         # Add new column with condition information (sensitive/resistant)
         mutate(condition = case_when(
-          str_detect(variable, "S[1-3]?$") ~ "Sensitive",
-          str_detect(variable, "R[1-3]?$") | str_detect(variable, "TMZ") ~ "Resistant"
-        ))
+          endsWith(variable, "S") ~ "Sensitive",
+          endsWith(variable, "R") ~ "Resistant"
+        )) %>%
+        mutate(cancer_condition = paste0(cancer_type, "_", condition)) %>%
+        group_by(gene_id, variable, cancer_type, condition, cancer_condition) %>%
+        summarise(value = sum(value, na.rm = TRUE), .groups = 'drop')
+      
+      
       
       boxplotServer(id = "boxplot1",
                     count_barplot_data,
