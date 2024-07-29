@@ -5,6 +5,8 @@ if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("plotly")) install.packages("plotly")
 if (!require("reshape2")) install.packages("reshape2")
 if (!require("shiny")) install.packages("shiny")
+if (!require("shinycssloaders")) install.packages("shinycssloaders")
+if (!require("shinydashboard")) install.packages("shinydashboard")
 if (!require("shinyjs")) install.packages("shinyjs")
 if (!require("shinyWidgets")) install.packages("shinyWidgets")
 if (!require("stringr")) install.packages("stringr")
@@ -17,6 +19,7 @@ library(plotly)
 library(reshape2)
 library(shiny)
 library(shinycssloaders)
+library(shinydashboard)
 library(shinyjs)
 library(shinyWidgets)
 library(stringr)
@@ -29,18 +32,7 @@ setwd(getSrcDirectory(function(){})[1])
 source("./module_search.R")
 source("./module_boxplot.R")
 source("./module_barplot.R")
-
-# Color code of cancers
-color_mapping <- list(
-  "X501Mel_S" = "#f5ab05",
-  "X501Mel_R" = "#8c6100",
-  "ADCA72_S" = "#00cc94",
-  "ADCA72_R" = "#00664a",
-  "PC3_S" = "#0084cf",
-  "PC3_R" = "#014c75",
-  "U251_S" = "#eb8dc1",
-  "U251_R" = "#824a69"
-)
+source("./module_filters.R")
 
 # Ui
 ui <- page_navbar(
@@ -84,16 +76,7 @@ ui <- page_navbar(
             # Search bar + Filter box
             fluidRow(
               column(width = 6, align = "center",
-                     value_box(value = "",
-                               title = "Filters",
-                               sliderInput(inputId = "log2fc_threshold",
-                                           label = "Log2FC Threshold:",
-                                           min = 0, max = 5, value = 0, step = 0.5),
-                               sliderTextInput(inputId = "padj_threshold",
-                                               label = "padj Threshold: ",
-                                               choices = c(0.01, 0.05, "NONE"),
-                                               selected = "NONE",
-                                               grid = TRUE))
+                     filtersBoxUI("filtersDGE")
               ), 
               column(width = 6, align = "center",
                      searchBarUI("searchBar", "submit_btn"))
@@ -105,16 +88,30 @@ ui <- page_navbar(
   
   nav_panel(title = "DTE",
             p(""),
-            # Search bar 
-            searchBarUI("searchBar", "submit_btn"),
+            # Search bar + Filter box
+            fluidRow(
+              column(width = 6, align = "center",
+                     filtersBoxUI("filtersDTE")
+              ), 
+              column(width = 6, align = "center",
+                     searchBarUI("searchBar", "submit_btn"))
+              
+            ),
             # DTE table
             DTOutput(outputId = "DTETable") %>% withSpinner()
             ),
   
   nav_panel(title = "DTU",
             p(""),
-            # Search bar 
-            searchBarUI("searchBar", "submit_btn"),
+            # Search bar + Filter box
+            fluidRow(
+              column(width = 6, align = "center",
+                     filtersBoxUI("filtersDTU")
+              ), 
+              column(width = 6, align = "center",
+                     searchBarUI("searchBar", "submit_btn"))
+              
+            ),
             # DTE table
             DTOutput(outputId = "DTUTable") %>% withSpinner()
             ),
@@ -325,22 +322,44 @@ server <- function(input, output, session) {
   ###  TABSET 3 : DGE ###
   #########################
 
+  filtersDGE <- filtersBoxServer("filtersDGE")
   
-  # Create a reactive value to store the DGE data, filtering it if a gene as been searched
+  # Create a reactive value to store the DGE data, filtering it if a gene as been searched, and filtering with the sliders log2fc / padj
   filtered_DGE_data <- reactive({
+    data <- DGEall
+    
+    # Apply gene search filter if a search term is provided
     if (search_term() != "") {
-      DGEall %>% 
-        filter(geneID == search_term() | gene_name == search_term()) # If a gene has been searched, find and take only the row with the name of the gene
-    } else {
-      DGEall # If no gene has been searched, take the full count data
+      data <- data %>% filter(geneID == search_term() | gene_name == search_term())
     }
+    
+    # Apply log2FoldChange filter based on DEside
+    data <- data %>% 
+      filter(case_when(
+        filtersDGE$DEside() == "both" ~ abs(log2FoldChange) >= filtersDGE$log2fc_threshold(),
+        filtersDGE$DEside() == "up" ~ log2FoldChange >= filtersDGE$log2fc_threshold(),
+        filtersDGE$DEside() == "down" ~ log2FoldChange <= -filtersDGE$log2fc_threshold()
+      ))
+    
+    # Apply padj filter if not "NONE"
+    if (filtersDGE$padj_threshold() != "NONE") {
+      data <- data %>% filter(padj <= as.numeric(filtersDGE$padj_threshold()))
+    }
+    
+    return(data)
   })
 
   # Render the filtered DGE table
   output$DGETable <- renderDT({
     datatable(filtered_DGE_data(),
               options = list(ordering = TRUE, pageLength = 10),
-              rownames = FALSE)
+              rownames = FALSE) %>%
+      formatStyle(columns = 'cancer',
+                  target = 'row',
+                  backgroundColor = styleEqual(
+                    c("Melanoma", "Lung", "Prostate", "Glioblastoma"),
+                    c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
+                  )) # FormatStyle not working
   })
   
   
@@ -348,14 +367,31 @@ server <- function(input, output, session) {
   ###  TABSET 4 : DTE ###
   #########################
   
+  filtersDTE <- filtersBoxServer("filtersDTE")
+  
   # Create a reactive value to store the DTE data, filtering it if a gene as been searched
   filtered_DTE_data <- reactive({
+    data <- DTEall
+    
+    # Apply gene search filter if a search term is provided
     if (search_term() != "") {
-      DTEall %>% 
-        filter(gene_id == search_term() | gene_name == search_term()) # If a gene has been searched, find and take only the row with the name of the gene
-    } else {
-      DTEall # If no gene has been searched, take the full count data
+      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
     }
+    
+    # Apply log2FoldChange filter based on DEside
+    data <- data %>% 
+      filter(case_when(
+        filtersDTE$DEside() == "both" ~ abs(log2FoldChange) >= filtersDTE$log2fc_threshold(),
+        filtersDTE$DEside() == "up" ~ log2FoldChange >= filtersDTE$log2fc_threshold(),
+        filtersDTE$DEside() == "down" ~ log2FoldChange <= -filtersDTE$log2fc_threshold()
+      ))
+    
+    # Apply padj filter if not "NONE"
+    if (filtersDTE$padj_threshold() != "NONE") {
+      data <- data %>% filter(padj <= as.numeric(filtersDTE$padj_threshold()))
+    }
+    
+    return(data)
   })
   
   output$DTETable <- renderDT({
@@ -369,14 +405,31 @@ server <- function(input, output, session) {
   ###  TABSET 5 : DTU ###
   #########################
   
+  filtersDTU <- filtersBoxServer("filtersDTU")
+  
   # Create a reactive value to store the DTE data, filtering it if a gene as been searched
   filtered_DTU_data <- reactive({
+    data <- DTUall
+    
+    # Apply gene search filter if a search term is provided
     if (search_term() != "") {
-      DTUall %>% 
-        filter(gene_id == search_term() | gene_name == search_term()) # If a gene has been searched, find and take only the row with the name of the gene
-    } else {
-      DTUall # If no gene has been searched, take the full count data
+      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
     }
+    
+    # Apply log2FoldChange filter based on DEside
+    data <- data %>% 
+      filter(case_when(
+        filtersDTU$DEside() == "both" ~ abs(dIF) >= filtersDTU$log2fc_threshold(),
+        filtersDTU$DEside() == "up" ~ dIF >= filtersDTU$log2fc_threshold(),
+        filtersDTU$DEside() == "down" ~ dIF <= -filtersDTU$log2fc_threshold()
+      ))
+    
+    # Apply padj filter if not "NONE"
+    if (filtersDTU$padj_threshold() != "NONE") {
+      data <- data %>% filter(isoform_switch_q_value <= as.numeric(filtersDTU$padj_threshold()))
+    }
+    
+    return(data)
   })
   
   output$DTUTable <- renderDT({
