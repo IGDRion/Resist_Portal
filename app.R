@@ -76,7 +76,7 @@ ui <- page_navbar(
             # Search bar + Filter box
             fluidRow(
               column(width = 6, align = "center",
-                     filtersBoxUI("filtersDGE")
+                     filtersBoxUI("filtersDGE", Dtype = "DE")
               ), 
               column(width = 6, align = "center",
                      searchBarUI("searchBar", "submit_btn"))
@@ -91,7 +91,7 @@ ui <- page_navbar(
             # Search bar + Filter box
             fluidRow(
               column(width = 6, align = "center",
-                     filtersBoxUI("filtersDTE")
+                     filtersBoxUI("filtersDTE", Dtype = "DE")
               ), 
               column(width = 6, align = "center",
                      searchBarUI("searchBar", "submit_btn"))
@@ -106,7 +106,7 @@ ui <- page_navbar(
             # Search bar + Filter box
             fluidRow(
               column(width = 6, align = "center",
-                     filtersBoxUI("filtersDTU")
+                     filtersBoxUI("filtersDTU", Dtype = "DU")
               ), 
               column(width = 6, align = "center",
                      searchBarUI("searchBar", "submit_btn"))
@@ -346,6 +346,11 @@ server <- function(input, output, session) {
       data <- data %>% filter(padj <= as.numeric(filtersDGE$padj_threshold()))
     }
     
+    # Apply cancer type filter
+    if (!is.null(filtersDGE$cancer_types())) {
+      data <- data %>% filter(cancer %in% filtersDGE$cancer_types())
+    }
+    
     return(data)
   })
 
@@ -391,6 +396,11 @@ server <- function(input, output, session) {
       data <- data %>% filter(padj <= as.numeric(filtersDTE$padj_threshold()))
     }
     
+    # Apply cancer type filter
+    if (!is.null(filtersDTE$cancer_types())) {
+      data <- data %>% filter(cancer %in% filtersDTE$cancer_types())
+    }
+    
     return(data)
   })
   
@@ -427,6 +437,11 @@ server <- function(input, output, session) {
     # Apply padj filter if not "NONE"
     if (filtersDTU$padj_threshold() != "NONE") {
       data <- data %>% filter(isoform_switch_q_value <= as.numeric(filtersDTU$padj_threshold()))
+    }
+    
+    # Apply cancer type filter
+    if (!is.null(filtersDTU$cancer_types())) {
+      data <- data %>% filter(cancer %in% filtersDTU$cancer_types())
     }
     
     return(data)
