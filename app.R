@@ -33,6 +33,7 @@ source("./module_search.R")
 source("./module_boxplot.R")
 source("./module_barplot.R")
 source("./module_filters.R")
+#source("./module_switchplot.R")
 
 # Ui
 ui <- page_navbar(
@@ -46,7 +47,16 @@ ui <- page_navbar(
   bg = "#70b684",
   inverse = TRUE,
   nav_panel(title = "Main", 
-            p("ECRIRE ICI AURORE ;)"), # Put text here if you need a text on top of the page
+            p(
+              HTML(
+                paste(
+                  "Resist Portal is an R shiny application developed to visualize data from the lncRNA Resist Project. Samples, coming from 4 cancers, have been analysed by long-read sequencing (nanopore technology). Resist Portal provides an overview of lncRNA resist analysis in terms of expression (tpm) and differential analysis at gene and transcript levels for a specific gene.<br><br>",
+                  "Conditions are the following:",
+                  gsub("- ", "<br>- ", "- 4 cell lines: Melanoma, Glioblastoma, Lung Cancer, Prostate Cancer - 2 condtions: resistant and sensitive to treatment - triplicates - cdna and drna protocoles (only cdna results shown)"),
+                  sep = ""
+                )
+              )
+            ), 
             # Search bar 
             searchBarUI("searchBar", "submit_btn"),
             # Main summary table
@@ -54,7 +64,7 @@ ui <- page_navbar(
             ),
   
   nav_panel(title = "Count",
-            p(""),
+            p("Expressions are normalized based on TPM (transcripts per million)."),
             # Search bar 
             searchBarUI("searchBar", "submit_btn"),
             tabsetPanel(id = "TabsetCount",
@@ -112,16 +122,28 @@ ui <- page_navbar(
                      searchBarUI("searchBar", "submit_btn"))
               
             ),
-            # DTE table
-            DTOutput(outputId = "DTUTable") %>% withSpinner()
+            # DTU table
+            DTOutput(outputId = "DTUTable") %>% withSpinner()#,
+            # switch plot
+            #switchPlotUI(id = "switchplot1")
             ),
   
   nav_spacer(),
+  nav_item(
+    actionButton(
+      inputId = "infoButton",
+      label = "Info",
+      icon = icon("info-circle"),
+      style = "background-color: white; color: #70b684; border: none;"
+    )
+  ),
   nav_menu(
     title = "Links",
     align = "right",
     nav_item(tags$a("GitHub", href = "https://github.com/IGDRion/Resist_Portal")),
-    nav_item(tags$a("Shiny", href = "https://shiny.posit.co"))
+    nav_item(tags$a("Shiny", href = "https://shiny.posit.co")),
+    nav_item(tags$a("DESeq2", href = "https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")),
+    nav_item(tags$a("ISA", href = "https://bioconductor.org/packages/devel/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.html"))
   )
 )
 
@@ -453,6 +475,47 @@ server <- function(input, output, session) {
               rownames = FALSE)
   })
   
+  #########################
+  ###  INFO BUTTON  ###
+  #########################
+  
+  observeEvent(input$infoButton, {
+    showModal(modalDialog(
+      title = "Information",
+      markdown("
+               #### MAIN TAB
+               
+               Information on genes/transcripts analysed including position and biotype.
+               When a gene/transcript is present in the annotation file, the type is annoted `known`, the `new` type corresponds to ones discovered by bambu.
+               A robust CAGE (Cap Analysis of Gene Expression) dataset is used to validate transcripts at 5' end, especially for new transcripts/genes (`Y` for CAGE validation).
+               The filter category gives another level of confidence for new genes/transcripts and corresponds to the filters included in the pipeline:
+               - bambu cut-off: NDR < 0.2
+               - transforKmers cut-off: TFK < 0.2
+               
+               #### COUNT TAB
+               Count Data corresponds to the number of sequence fragments that have been assigned to each gene or transcript.
+               These data are normalized based on TPM (transcripts per million) corresponding to a normalization by gene length followed by a normalization for sequencing depth.
+               In the table, expression corresponds to the triplicates median for each condition.
+               
+               #### DGE/DTE TAB
+               
+               Differential expression analysis was performed with DESeq2 per cancer using a negative binomial generalized linear models.
+               The significance of differential Gene/transcript expression is defined by parameters:
+               - p-value adjusted (padj)
+               - log 2 fold change corresponding to the change in expression between the 2 conditions (log2FoldChange)
+               
+               #### DTU TAB
+               
+               Differential usage analysis was performed with isoformSwitchAnalyzeR. 
+               This R package enables statistical identification of isoform switches based on DEXSeq tool.
+               A significant isoform switch is defined by parameters:
+               - `alpha` corresponding to FDR corrected P-value cut-off (q-value) -> statistical certainty of the difference between 2 conditions
+               - `dIF` indicating the minimum absolute change in isoforme usage (dIF) -> reflect the effect size
+               "),
+      easyClose = TRUE,
+      footer = NULL
+    ))
+  })
   
 }
 

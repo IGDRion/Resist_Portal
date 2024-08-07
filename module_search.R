@@ -11,7 +11,9 @@ searchBarUI <- function(id_bar, id_button){
                      placeholder = "Gene ID/name")
     ),
     column(6, align = "left",
-           actionButton(inputId = id_button, label = "Submit", style = "margin-top: 25px;")
+           actionButton(inputId = id_button, 
+                        label = "Submit", 
+                        style = "margin-top: 25px;")
     )
   )
   
