@@ -1,7 +1,7 @@
 library(shiny)
 
 # UI module
-searchBarUI <- function(id_bar, id_button){
+searchBarUI <- function(id_bar, id_button, id_reset){
 
   # Search bar 
   fluidRow(
@@ -13,6 +13,9 @@ searchBarUI <- function(id_bar, id_button){
     column(6, align = "left",
            actionButton(inputId = id_button, 
                         label = "Submit", 
+                        style = "margin-top: 25px;"),
+           actionButton(inputId = id_reset, 
+                        label = "Reset", 
                         style = "margin-top: 25px;")
     )
   )

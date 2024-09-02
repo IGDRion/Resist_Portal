@@ -10,6 +10,7 @@ if (!require("shinydashboard")) install.packages("shinydashboard")
 if (!require("shinyjs")) install.packages("shinyjs")
 if (!require("shinyWidgets")) install.packages("shinyWidgets")
 if (!require("stringr")) install.packages("stringr")
+if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
 
 library(bslib)
 library(DT)
@@ -23,6 +24,10 @@ library(shinydashboard)
 library(shinyjs)
 library(shinyWidgets)
 library(stringr)
+library(summaryBox)
+
+# Bootstrap 4
+theme <- bslib::bs_theme(version = 4)
 
 
 # Set directory to the src directory of the app so that the path
@@ -33,7 +38,10 @@ source("./module_search.R")
 source("./module_boxplot.R")
 source("./module_barplot.R")
 source("./module_filters.R")
+source("./module_volcano.R")
+source("./module_statbox.R")
 #source("./module_switchplot.R")
+
 
 # Ui
 ui <- page_navbar(
@@ -57,8 +65,10 @@ ui <- page_navbar(
                 )
               )
             ), 
+            # Image of experimental design
+            HTML('<center><img(src = "experimental_design.png", alt = "Experimental Design", width = "50%", height = "auto"></center>'),
             # Search bar 
-            searchBarUI("searchBar", "submit_btn"),
+            searchBarUI("searchBar", "submit_btn", "reset_btn"),
             # Main summary table
             DTOutput(outputId = "SummaryTable") %>% withSpinner() # withSpinner() display a loading spinner while the dataframe is not on screen
             ),
@@ -66,7 +76,7 @@ ui <- page_navbar(
   nav_panel(title = "Count",
             p("Expressions are normalized based on TPM (transcripts per million)."),
             # Search bar 
-            searchBarUI("searchBar", "submit_btn"),
+            searchBarUI("searchBar", "submit_btn", "reset_btn"),
             tabsetPanel(id = "TabsetCount",
                         tabPanel(title = "Gene",
                                  # Count table
@@ -89,11 +99,17 @@ ui <- page_navbar(
                      filtersBoxUI("filtersDGE", Dtype = "DE")
               ), 
               column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn"))
-              
+                     searchBarUI("searchBar", "submit_btn", "reset_btn"),
+                     # Box test
+                     statboxUI("statboxDGE")
+                     )
             ),
+            
             # DGE table
-            DTOutput(outputId = "DGETable") %>% withSpinner()
+            DTOutput(outputId = "DGETable") %>% withSpinner(),
+            
+            # Volcano plot
+            volcanoUI("volcanoDGE")
             ),
   
   nav_panel(title = "DTE",
@@ -104,7 +120,7 @@ ui <- page_navbar(
                      filtersBoxUI("filtersDTE", Dtype = "DE")
               ), 
               column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn"))
+                     searchBarUI("searchBar", "submit_btn", "reset_btn"))
               
             ),
             # DTE table
@@ -119,7 +135,7 @@ ui <- page_navbar(
                      filtersBoxUI("filtersDTU", Dtype = "DU")
               ), 
               column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn"))
+                     searchBarUI("searchBar", "submit_btn", "reset_btn"))
               
             ),
             # DTU table
@@ -156,9 +172,9 @@ server <- function(input, output, session) {
     mutate_if(is.numeric, ~round(., digits = 3))
   load("./DATA//Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
   DGEall <- DGEall %>%
-    mutate_if(is.numeric, ~round(., digits = 3))
+    mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
   DTEall <- DTEall %>%
-    mutate_if(is.numeric, ~round(., digits = 3))
+    mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
   DTUall <- DTUall %>%
     mutate_if(is.numeric, ~round(., digits = 3))
   
@@ -172,6 +188,11 @@ server <- function(input, output, session) {
   # Add this observeEvent so when the search bar module is used, search_term changes
   observeEvent(input$submit_btn, {
     search_term(input$searchBar)
+  })
+  
+  # Add this observeEvent so when the reset button of the search bar module is used, search_term becomes NULL and filtered_data becomes the full dataset again
+  observeEvent(input$reset_btn, {
+    search_term("")
   })
   
   
@@ -333,9 +354,9 @@ server <- function(input, output, session) {
                     filtered_count_data_tx())
       
     } else {
-      shinyjs::hide("boxplot1")
-      shinyjs::hide("boxplot2")
-      shinyjs::hide("barplotTX")
+      output$boxplot1 <- renderUI({ NULL })
+      output$boxplot2 <- renderUI({ NULL })
+      output$barplotTX <- renderUI({ NULL })
     }
     
   })
@@ -388,6 +409,34 @@ server <- function(input, output, session) {
                     c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
                   )) # FormatStyle not working
   })
+  
+  # Creating list required for statbox server module + launching it
+  statboxDataDGE <- reactive({
+    req(search_term() != "")
+    list(
+      search_term = search_term(),
+      DGEall = DGEall,
+      cancer_types = filtersDGE$cancer_types()
+    )
+  })
+  
+  statboxServer("statboxDGE", statboxDataDGE)
+  
+  # Creating list required for volcano server module + launching it
+  volcanoData <- reactive({
+    req(search_term() != "")
+    list(
+      search_term = search_term(),
+      DGEall = DGEall,
+      filtered_data = filtered_DGE_data(),
+      log2fc_threshold = filtersDGE$log2fc_threshold(),
+      padj_threshold = filtersDGE$padj_threshold(),
+      cancer_types = filtersDGE$cancer_types()
+    )
+  })
+  
+  volcanoServer("volcanoDGE", volcanoData)
+  
   
   
   #########################

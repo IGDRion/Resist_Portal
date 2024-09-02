@@ -87,12 +87,13 @@ filtersBoxUI <- function(id, Dtype){
 }
 
 filtersBoxServer <- function(id) {
-  moduleServer(id, function(input, output, session) {
-    list(
-      DEside = reactive(input$DEside),
-      log2fc_threshold = reactive(input$log2fc_threshold),
-      padj_threshold = reactive(input$padj_threshold),
-      cancer_types = reactive(input$cancer_types)
-    )
-  })
+  moduleServer(id = id,
+               module = function(input, output, session) {
+                  return(list(
+                    DEside = reactive(input$DEside),
+                    log2fc_threshold = reactive(input$log2fc_threshold),
+                    padj_threshold = reactive(input$padj_threshold),
+                    cancer_types = reactive(input$cancer_types)
+                  ))
+               })
 }
