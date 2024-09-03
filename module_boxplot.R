@@ -70,7 +70,7 @@ boxplotServer <- function(id, type, count_boxplot_data, search_term) {
           group_by(transcript_id) %>%
           group_map(~ plot_count(.x, .y$transcript_id[1]))
         
-        stacked_plot <- reduce(boxplots, `+`) + plot_layout(ncol = 1)
+        stacked_plot <- purrr::reduce(boxplots, `+`) + plot_layout(ncol = 1)
         
         output$countBoxplot <- renderPlot({
           stacked_plot

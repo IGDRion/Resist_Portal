@@ -11,6 +11,8 @@ if (!require("shinyjs")) install.packages("shinyjs")
 if (!require("shinyWidgets")) install.packages("shinyWidgets")
 if (!require("stringr")) install.packages("stringr")
 if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
+if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
 
 library(bslib)
 library(DT)
@@ -25,9 +27,11 @@ library(shinyjs)
 library(shinyWidgets)
 library(stringr)
 library(summaryBox)
+library(IsoformSwitchAnalyzeR)
 
 # Bootstrap 4
 theme <- bslib::bs_theme(version = 4)
+
 
 
 # Set directory to the src directory of the app so that the path
@@ -40,7 +44,7 @@ source("./module_barplot.R")
 source("./module_filters.R")
 source("./module_volcano.R")
 source("./module_statbox.R")
-#source("./module_switchplot.R")
+source("./module_switchplot.R")
 
 
 # Ui
@@ -88,7 +92,7 @@ ui <- page_navbar(
                                   DTOutput(outputId = "CountTableTx") %>% withSpinner(),
                                   barplotUI(id = "barplotTX") %>% withSpinner(),
                                  # Boxplot
-                                 boxplotUI(id = "boxplot2"))
+                                  boxplotUI(id = "boxplot2"))
             )
   ),
   nav_panel(title = "DGE",
@@ -139,9 +143,12 @@ ui <- page_navbar(
               
             ),
             # DTU table
-            DTOutput(outputId = "DTUTable") %>% withSpinner()#,
+            DTOutput(outputId = "DTUTable") %>% withSpinner(),
             # switch plot
-            #switchPlotUI(id = "switchplot1")
+            switchPlotUI(id = "switchplot1") %>% withSpinner(),
+            switchPlotUI(id = "switchplot2") %>% withSpinner(),
+            switchPlotUI(id = "switchplot3") %>% withSpinner(),
+            switchPlotUI(id = "switchplot4")
             ),
   
   nav_spacer(),
@@ -177,6 +184,7 @@ server <- function(input, output, session) {
     mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
   DTUall <- DTUall %>%
     mutate_if(is.numeric, ~round(., digits = 3))
+  switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
   
   ############################
   ###  SEARCH BUTTON VALUE ###
@@ -297,7 +305,7 @@ server <- function(input, output, session) {
     } else if (type == "tx") {
       # Prepare data for the barplot with transcript_id
       data <- data %>%
-        select(-c(gene_id, gene_name))
+        dplyr::select(-c(gene_id, gene_name))
       data <- melt(data)
     }
     
@@ -486,6 +494,8 @@ server <- function(input, output, session) {
   ###  TABSET 5 : DTU ###
   #########################
   
+  ### PREPARE TABLE (FILTERING WITH SEARCH TERM) AND DISPLAY IT IN THE OUTPUT ###
+  
   filtersDTU <- filtersBoxServer("filtersDTU")
   
   # Create a reactive value to store the DTE data, filtering it if a gene as been searched
@@ -522,6 +532,42 @@ server <- function(input, output, session) {
     datatable(filtered_DTU_data(),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
+  })
+  
+  ### PREPARE SWITCHPLOT ###
+  
+  observe({
+    
+    if (search_term() != "") {
+      
+      shinyjs::show("switchplot1")
+      shinyjs::show("switchplot2")
+      shinyjs::show("switchplot3")
+      shinyjs::show("switchplot4")
+      
+      switchPlotServer(id = "switchplot1",
+                       switch_data,
+                       "Glioblastoma",
+                       search_term())
+      switchPlotServer(id = "switchplot2",
+                       switch_data,
+                       "Lung",
+                       search_term())
+      switchPlotServer(id = "switchplot3",
+                       switch_data,
+                       "Melanoma",
+                       search_term())
+      switchPlotServer(id = "switchplot4",
+                       switch_data,
+                       "Prostate",
+                       search_term())
+    } else {
+      shinyjs::hide("switchplot1")
+      shinyjs::hide("switchplot2")
+      shinyjs::hide("switchplot3")
+      shinyjs::hide("switchplot4")
+    }
+    
   })
   
   #########################
