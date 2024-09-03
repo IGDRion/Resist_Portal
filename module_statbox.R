@@ -32,7 +32,7 @@ statboxServer <- function(id, data) {
         req(data()$DGEall, data()$search_term)
         data()$DGEall %>%
           filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
-          select(cancer, log2FoldChange)
+          dplyr::select(cancer, log2FoldChange)
       })
       
       # the mean of log2FC of all gene for each cancer (separating over and under expressed genes)
@@ -50,76 +50,76 @@ statboxServer <- function(id, data) {
       ### Writing the text inside every box
       output$melanoma_log2fc <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Melanoma") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Melanoma") %>% 
+          dplyr::pull(log2FoldChange)
         sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
       })
       
       output$melanoma_mean <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Melanoma") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Melanoma") %>% 
+          dplyr::pull(log2FoldChange)
         
         mean_value <- cancer_means() %>% 
-          filter(cancer == "Melanoma") %>% 
-          pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
+          dplyr::filter(cancer == "Melanoma") %>% 
+          dplyr::pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
         
         sprintf("Mean Log2FC: %.3f", mean_value)
       })
       
       output$lung_log2fc <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Lung") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Lung") %>% 
+          dplyr::pull(log2FoldChange)
         sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
       })
       
       output$lung_mean <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Lung") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Lung") %>% 
+          dplyr::pull(log2FoldChange)
         
         mean_value <- cancer_means() %>% 
-          filter(cancer == "Lung") %>% 
-          pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
+          dplyr::filter(cancer == "Lung") %>% 
+          dplyr::pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
         
         sprintf("Mean Log2FC: %.3f", mean_value)
       })
       
       output$prostate_log2fc <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Prostate") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Prostate") %>% 
+          dplyr::pull(log2FoldChange)
         sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
       })
       
       output$prostate_mean <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Prostate") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Prostate") %>% 
+          dplyr::pull(log2FoldChange)
         
         mean_value <- cancer_means() %>% 
-          filter(cancer == "Prostate") %>% 
-          pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
+          dplyr::filter(cancer == "Prostate") %>% 
+          dplyr::pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
         
         sprintf("Mean Log2FC: %.3f", mean_value)
       })
       
       output$glioblastoma_log2fc <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Glioblastoma") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Glioblastoma") %>% 
+          dplyr::pull(log2FoldChange)
         sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
       })
       
       output$glioblastoma_mean <- renderText({
         log2fc <- log2fc_values() %>% 
-          filter(cancer == "Glioblastoma") %>% 
-          pull(log2FoldChange)
+          dplyr::filter(cancer == "Glioblastoma") %>% 
+          dplyr::pull(log2FoldChange)
         
         mean_value <- cancer_means() %>% 
           filter(cancer == "Glioblastoma") %>% 
-          pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
+          dplyr::pull(if(log2fc >= 0) mean_log2FC_up else mean_log2FC_down)
         
         sprintf("Mean Log2FC: %.3f", mean_value)
       })

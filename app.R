@@ -3,6 +3,7 @@ if (!require("DT")) install.packages("DT")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("plotly")) install.packages("plotly")
+if (!require("remotes")) install.packages("remotes")
 if (!require("reshape2")) install.packages("reshape2")
 if (!require("shiny")) install.packages("shiny")
 if (!require("shinycssloaders")) install.packages("shinycssloaders")
@@ -74,7 +75,9 @@ ui <- page_navbar(
             # Search bar 
             searchBarUI("searchBar", "submit_btn", "reset_btn"),
             # Main summary table
-            DTOutput(outputId = "SummaryTable") %>% withSpinner() # withSpinner() display a loading spinner while the dataframe is not on screen
+            DTOutput(outputId = "SummaryTable") %>% withSpinner(), # withSpinner() display a loading spinner while the dataframe is not on screen
+            # UCSC link
+            uiOutput("UCSClink")
             ),
   
   nav_panel(title = "Count",
@@ -113,11 +116,16 @@ ui <- page_navbar(
             DTOutput(outputId = "DGETable") %>% withSpinner(),
             
             # Volcano plot
-            volcanoUI("volcanoDGE")
+            volcanoUI("volcanoDGE"),
+            
+            # Text to explain that volcano plot points are stopped when they are above a certain limit
+            uiOutput("volcanoText")
             ),
   
   nav_panel(title = "DTE",
             p(""),
+            # Write which gene is currently selected at the top of the page
+            uiOutput("SelectedGeneText"),
             # Search bar + Filter box
             fluidRow(
               column(width = 6, align = "center",
@@ -163,10 +171,10 @@ ui <- page_navbar(
   nav_menu(
     title = "Links",
     align = "right",
-    nav_item(tags$a("GitHub", href = "https://github.com/IGDRion/Resist_Portal")),
-    nav_item(tags$a("Shiny", href = "https://shiny.posit.co")),
-    nav_item(tags$a("DESeq2", href = "https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html")),
-    nav_item(tags$a("ISA", href = "https://bioconductor.org/packages/devel/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.html"))
+    nav_item(tags$a("GitHub", href = "https://github.com/IGDRion/Resist_Portal", target = "_blank")),
+    nav_item(tags$a("Shiny", href = "https://shiny.posit.co", target = "_blank")),
+    nav_item(tags$a("DESeq2", href = "https://www.bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html", target = "_blank")),
+    nav_item(tags$a("ISA", href = "https://bioconductor.org/packages/devel/bioc/vignettes/IsoformSwitchAnalyzeR/inst/doc/IsoformSwitchAnalyzeR.html", target = "_blank"))
   )
 )
 
@@ -226,6 +234,19 @@ server <- function(input, output, session) {
               rownames = FALSE)
   })
   
+  
+  UCSC_url <- reactive({
+    if (search_term() != ""){
+      term <- search_term()
+      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome.ucsc.edu/cgi-bin/hgSearch?search=",term,"&db=hg38"), target = "_blank")
+    } else {
+      ""
+    }
+  })
+  
+  output$UCSClink <- renderUI({
+    UCSC_url()
+  })
   
   #########################
   ###  TABSET 2 : COUNT ###
@@ -445,11 +466,26 @@ server <- function(input, output, session) {
   
   volcanoServer("volcanoDGE", volcanoData)
   
-  
+  output$volcanoText <- renderUI({
+    if (search_term() != ""){
+      HTML("<i>Note: Outlier points beyond the axes limits have been constrained to improve plot readability.</i>")
+    } else {
+      ""
+    }
+  })
   
   #########################
   ###  TABSET 4 : DTE ###
   #########################
+  
+  output$SelectedGeneText <- renderUI({
+    if (search_term() != ""){
+      paste0("Currently selected gene: ", search_term())
+    } else {
+      ""
+    }
+  })
+  
   
   filtersDTE <- filtersBoxServer("filtersDTE")
   

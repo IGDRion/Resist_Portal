@@ -31,8 +31,8 @@ boxplotServer <- function(id, type, count_boxplot_data, search_term) {
       plot_count <- function(data, id) {
         
         ggplot(data = data, aes(x = cancer_condition, y = value, fill = cancer_condition)) +
-          geom_violin(trim = FALSE, alpha = 0.5) +
-          geom_boxplot(width = 0.1, fill = "grey") +
+          #geom_violin(trim = FALSE, alpha = 0.5) +
+          geom_boxplot(width = 0.1) +
           geom_jitter(aes(shape = condition), size = 3) +
           scale_y_continuous(labels = scales::comma) +
           scale_fill_manual(values = c("Melanoma_Sensitive" = '#f5ab05' , "Melanoma_Resistant" = '#8c6100',
@@ -70,7 +70,7 @@ boxplotServer <- function(id, type, count_boxplot_data, search_term) {
           group_by(transcript_id) %>%
           group_map(~ plot_count(.x, .y$transcript_id[1]))
         
-        stacked_plot <- purrr::reduce(boxplots, `+`) + plot_layout(ncol = 1)
+        stacked_plot <- purrr::reduce(boxplots, `+`) + plot_layout(ncol = 1) # Stack all boxplot on top of each other
         
         output$countBoxplot <- renderPlot({
           stacked_plot

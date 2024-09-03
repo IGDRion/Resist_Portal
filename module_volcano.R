@@ -29,6 +29,7 @@ volcanoServer <- function(id, data) {
           mutate(
             # Change padj column to -log 
             padj = ifelse((padj == 0 | -log(padj) > 30), exp(-30), padj),
+            log2FoldChange = ifelse(abs(log2FoldChange) > 10, 10, log2FoldChange),
             
             # If biotype not lncRNA or protein_coding, it becomes "other"
             gene_biotype = ifelse(is.na(gene_biotype), "other", gene_biotype),
