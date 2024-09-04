@@ -100,43 +100,74 @@ ui <- page_navbar(
   ),
   nav_panel(title = "DGE",
             p(""),
-            # Search bar + Filter box
-            fluidRow(
-              column(width = 6, align = "center",
-                     filtersBoxUI("filtersDGE", Dtype = "DE")
-              ), 
-              column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn", "reset_btn"),
-                     # Box test
-                     statboxUI("statboxDGE")
-                     )
-            ),
+            # Write which gene is currently selected at the top of the page
+            uiOutput("SelectedGeneTextDGE"),
             
-            # DGE table
-            DTOutput(outputId = "DGETable") %>% withSpinner(),
+            tabsetPanel(id= "TabsetDGE",
+                        tabPanel(title = "All",
+                                 p(""),
+                                 
+                                 # Search bar + Filter box
+                                 fluidRow(
+                                   column(width = 6, align = "center",
+                                          filtersBoxUI("filtersDGE", Dtype = "DE")
+                                   ), 
+                                   column(width = 6, align = "center",
+                                          searchBarUI("searchBar", "submit_btn", "reset_btn"),
+                                          # Box test
+                                          statboxUI("statboxDGEAll")
+                                   )
+                                 ),
+                                 
+                                 # DGE table All
+                                 DTOutput(outputId = "DGETableAll") %>% withSpinner(),
+                                 
+                                 
+                        ),
+                        tabPanel(title = "Query",
+                                 p(""),
+                                 
+                                 #Search bar
+                                 searchBarUI("searchBar", "submit_btn", "reset_btn"),
+                                 
+                                 # Box test
+                                 statboxUI("statboxDGEQuery"),
+                                 
+                                 # DGE table Query
+                                 DTOutput(outputId = "DGETableQuery") %>% withSpinner(),
+                                 
+                                 # Volcano plot
+                                 volcanoUI("volcanoDGE"),
+                                 
+                                 # Text to explain that volcano plot points are stopped when they are above a certain limit
+                                 uiOutput("volcanoText")
+                                
+                        )
             
-            # Volcano plot
-            volcanoUI("volcanoDGE"),
-            
-            # Text to explain that volcano plot points are stopped when they are above a certain limit
-            uiOutput("volcanoText")
-            ),
+            )),
   
   nav_panel(title = "DTE",
             p(""),
             # Write which gene is currently selected at the top of the page
-            uiOutput("SelectedGeneText"),
-            # Search bar + Filter box
-            fluidRow(
-              column(width = 6, align = "center",
-                     filtersBoxUI("filtersDTE", Dtype = "DE")
-              ), 
-              column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn", "reset_btn"))
-              
-            ),
-            # DTE table
-            DTOutput(outputId = "DTETable") %>% withSpinner()
+            uiOutput("SelectedGeneTextDTE"),
+            
+            tabsetPanel(id = "TabsetDTE",
+                        tabPanel(title = "All",
+                                 # Search bar + Filter box
+                                 fluidRow(
+                                   column(width = 6, align = "center",
+                                          filtersBoxUI("filtersDTE", Dtype = "DE")
+                                   ), 
+                                   column(width = 6, align = "center",
+                                          searchBarUI("searchBar", "submit_btn", "reset_btn"))
+                                   
+                                 ),
+                                 # DTE table
+                                 DTOutput(outputId = "DTETable") %>% withSpinner()),
+                        tabPanel(title = "Query",
+                                 p("test"))
+                        )
+            
             ),
   
   nav_panel(title = "DTU",
@@ -394,16 +425,21 @@ server <- function(input, output, session) {
   ###  TABSET 3 : DGE ###
   #########################
 
+  # Text to display which gene has been searched and giving info to click on the query sub-tab.
+  output$SelectedGeneTextDGE <- renderUI({
+    if (search_term() != ""){
+      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+    } else {
+      ""
+    }
+  })
+  
+  
   filtersDGE <- filtersBoxServer("filtersDGE")
   
-  # Create a reactive value to store the DGE data, filtering it if a gene as been searched, and filtering with the sliders log2fc / padj
-  filtered_DGE_data <- reactive({
+  # Create a reactive value to store the DGE data,filtering with the sliders log2fc / padj (on all data)
+  filtered_DGE_data_All <- reactive({
     data <- DGEall
-    
-    # Apply gene search filter if a search term is provided
-    if (search_term() != "") {
-      data <- data %>% filter(geneID == search_term() | gene_name == search_term())
-    }
     
     # Apply log2FoldChange filter based on DEside
     data <- data %>% 
@@ -425,10 +461,23 @@ server <- function(input, output, session) {
     
     return(data)
   })
-
-  # Render the filtered DGE table
-  output$DGETable <- renderDT({
-    datatable(filtered_DGE_data(),
+  
+  
+  # Create a reactive value to store the DGE data,filtering to keep only the searched gene
+  filtered_DGE_data_Query <- reactive({
+    data <- DGEall
+    
+    # Apply gene search filter if a search term is provided
+    if (search_term() != "") {
+      data <- data %>% filter(geneID == search_term() | gene_name == search_term())
+    }
+    
+    return(data)
+  })
+  
+  # Render the filtered DGE table of All genes
+  output$DGETableAll <- renderDT({
+    datatable(filtered_DGE_data_All(),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -439,17 +488,38 @@ server <- function(input, output, session) {
                   )) # FormatStyle not working
   })
   
-  # Creating list required for statbox server module + launching it
-  statboxDataDGE <- reactive({
-    req(search_term() != "")
-    list(
-      search_term = search_term(),
-      DGEall = DGEall,
-      cancer_types = filtersDGE$cancer_types()
-    )
+  # Render the DGE table for the query gene (4 rows, one per cancer)
+  output$DGETableQuery <- renderDT({
+    datatable(filtered_DGE_data_Query(),
+              options = list(ordering = TRUE, pageLength = 10),
+              rownames = FALSE) %>%
+      formatStyle(columns = 'cancer',
+                  target = 'row',
+                  backgroundColor = styleEqual(
+                    c("Melanoma", "Lung", "Prostate", "Glioblastoma"),
+                    c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
+                  )) # FormatStyle not working
   })
   
-  statboxServer("statboxDGE", statboxDataDGE)
+  
+  # Creating list required for statbox server module + launching it
+  statboxDataDGE <- reactive({
+    if(search_term() != ""){
+      list(
+        search_term = search_term(),
+        DGEall = DGEall,
+        cancer_types = filtersDGE$cancer_types()
+      )
+    } else {
+      list(
+        DGEall = DGEall,
+        cancer_types = filtersDGE$cancer_types()
+      )
+    }
+  })
+  
+  statboxServer("statboxDGEAll", statboxDataDGE, "All")
+  statboxServer("statboxDGEQuery", statboxDataDGE, "Query")
   
   # Creating list required for volcano server module + launching it
   volcanoData <- reactive({
@@ -457,7 +527,7 @@ server <- function(input, output, session) {
     list(
       search_term = search_term(),
       DGEall = DGEall,
-      filtered_data = filtered_DGE_data(),
+      filtered_data = filtered_DGE_data_All(),
       log2fc_threshold = filtersDGE$log2fc_threshold(),
       padj_threshold = filtersDGE$padj_threshold(),
       cancer_types = filtersDGE$cancer_types()
@@ -478,14 +548,14 @@ server <- function(input, output, session) {
   ###  TABSET 4 : DTE ###
   #########################
   
-  output$SelectedGeneText <- renderUI({
+  # Text to display which gene has been searched and giving info to click on the query sub-tab.
+  output$SelectedGeneTextDTE <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term())
+      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
     } else {
       ""
     }
   })
-  
   
   filtersDTE <- filtersBoxServer("filtersDTE")
   

@@ -22,14 +22,18 @@ filtersBoxUI <- function(id, Dtype){
               ),
               br(),
               fluidRow(
-                column(width = 6, align = "center",
+                column(width = 2, align = "left",
+                       p("\t")), # Empty space to adjust alignement of buttons
+                column(width = 4, align = "left",
                        radioButtons(inputId = ns("DEside"),
                                     label = "DE type:",
                                     choices = c("Down Regulated" = "down",
                                                 "Up Regulated  " = "up",
                                                 "Both          " = "both"),
                                     selected = "both")),
-                column(width = 6, align = "center",
+                column(width = 2, align = "left",
+                       p("\t")), # Empty space to adjust alignement of buttons
+                column(width = 4, align = "left",
                        checkboxGroupInput(inputId = ns("cancer_types"),
                                     label = "Cancer:",
                                     choices = c("Melanoma",
@@ -39,8 +43,8 @@ filtersBoxUI <- function(id, Dtype){
                                     selected = c("Melanoma",
                                                 "Lung",
                                                 "Prostate",
-                                                "Glioblastoma")
-                                    ))
+                                                "Glioblastoma"))
+                )
               )
     )
   } else if (Dtype == "DU"){
