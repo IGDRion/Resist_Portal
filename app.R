@@ -269,7 +269,10 @@ server <- function(input, output, session) {
   UCSC_url <- reactive({
     if (search_term() != ""){
       term <- search_term()
-      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome.ucsc.edu/cgi-bin/hgSearch?search=",term,"&db=hg38"), target = "_blank")
+      chr <- filtered_summary_data()$seqnames
+      start <- filtered_summary_data()$start
+      end <- filtered_summary_data()$end
+      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome-euro.ucsc.edu/cgi-bin/hgTracks?db=hg38&lastVirtModeType=default&lastVirtModeExtraState=&virtModeType=default&virtMode=0&nonVirtPosition=&position=",chr,"%3A",start,"%2D",end,"&hgsid=344706747_gP5HfXMLpw1Xt9c5jPrhFRL6XYdl"), target = "_blank")
     } else {
       ""
     }
