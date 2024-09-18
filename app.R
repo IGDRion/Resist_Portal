@@ -15,6 +15,7 @@ if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
 if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
 
+
 library(bslib)
 library(DT)
 library(dplyr)
@@ -32,8 +33,6 @@ library(IsoformSwitchAnalyzeR)
 
 # Bootstrap 4
 theme <- bslib::bs_theme(version = 4)
-
-
 
 # Set directory to the src directory of the app so that the path
 # is correctly resolved later (otherwise they won't be found)
@@ -73,7 +72,7 @@ ui <- page_navbar(
             # Image of experimental design
             HTML('<center><img(src = "experimental_design.png", alt = "Experimental Design", width = "50%", height = "auto"></center>'),
             # Search bar 
-            searchBarUI("searchBar", "submit_btn", "reset_btn"),
+            searchBarUI("searchBar1", "submit_btn", "reset_btn"),
             # Main summary table
             DTOutput(outputId = "SummaryTable") %>% withSpinner(), # withSpinner() display a loading spinner while the dataframe is not on screen
             # UCSC link
@@ -83,7 +82,7 @@ ui <- page_navbar(
   nav_panel(title = "Count",
             p("Expressions are normalized based on TPM (transcripts per million)."),
             # Search bar 
-            searchBarUI("searchBar", "submit_btn", "reset_btn"),
+            searchBarUI("searchBar2", "submit_btn", "reset_btn"),
             tabsetPanel(id = "TabsetCount",
                         tabPanel(title = "Gene",
                                  # Count table
@@ -113,14 +112,14 @@ ui <- page_navbar(
                                           filtersBoxUI("filtersDGE", Dtype = "DE")
                                    ), 
                                    column(width = 6, align = "center",
-                                          searchBarUI("searchBar", "submit_btn", "reset_btn"),
+                                          searchBarUI("searchBar3", "submit_btn", "reset_btn"),
                                           # Box test
                                           statboxUI("statboxDGEAll")
                                    )
                                  ),
                                  
                                  # DGE table All
-                                 DTOutput(outputId = "DGETableAll") %>% withSpinner(),
+                                 DTOutput(outputId = "DGETableAll") %>% withSpinner()
                                  
                                  
                         ),
@@ -128,7 +127,7 @@ ui <- page_navbar(
                                  p(""),
                                  
                                  #Search bar
-                                 searchBarUI("searchBar", "submit_btn", "reset_btn"),
+                                 searchBarUI("searchBar4", "submit_btn", "reset_btn"),
                                  
                                  # Box test
                                  statboxUI("statboxDGEQuery"),
@@ -159,7 +158,7 @@ ui <- page_navbar(
                                           filtersBoxUI("filtersDTE", Dtype = "DE")
                                    ), 
                                    column(width = 6, align = "center",
-                                          searchBarUI("searchBar", "submit_btn", "reset_btn"))
+                                          searchBarUI("searchBar5", "submit_btn", "reset_btn"))
                                    
                                  ),
                                  # DTE table
@@ -176,9 +175,9 @@ ui <- page_navbar(
             fluidRow(
               column(width = 6, align = "center",
                      filtersBoxUI("filtersDTU", Dtype = "DU")
-              ), 
+              ),
               column(width = 6, align = "center",
-                     searchBarUI("searchBar", "submit_btn", "reset_btn"))
+                     searchBarUI("searchBar6", "submit_btn", "reset_btn"))
               
             ),
             # DTU table
@@ -214,8 +213,11 @@ server <- function(input, output, session) {
   
   # Import datasets
   summary_data <- read.table("./DATA/summary_lncRNAresist.txt", header = TRUE)
+  autocomplete_list <- unique(c(summary_data$gene_id, summary_data$gene_name))
+
   count_data <- readRDS("./DATA/resist_transcript_expression.rds") %>%
     mutate_if(is.numeric, ~round(., digits = 3))
+  
   load("./DATA//Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
   DGEall <- DGEall %>%
     mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
@@ -225,21 +227,45 @@ server <- function(input, output, session) {
     mutate_if(is.numeric, ~round(., digits = 3))
   switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
   
+  
   ############################
-  ###  SEARCH BUTTON VALUE ###
+  ###  SEARCH TERM VALUE ###
   ############################
+  
+  # Initialize all search bars
+  searchBarServer("searchBar1", autocomplete_list)
+  searchBarServer("searchBar2", autocomplete_list)
+  searchBarServer("searchBar3", autocomplete_list)
+  searchBarServer("searchBar4", autocomplete_list)
+  searchBarServer("searchBar5", autocomplete_list)
+  searchBarServer("searchBar6", autocomplete_list)
   
   # Create a reactive value to store the gene searched through the researched bar, so it can be used everywhere in the app
   search_term <- reactiveVal("")
   
   # Add this observeEvent so when the search bar module is used, search_term changes
   observeEvent(input$submit_btn, {
-    search_term(input$searchBar)
+    search_inputs <- c(input$searchBar1, input$searchBar2, input$searchBar3,
+                       input$searchBar4, input$searchBar5, input$searchBar6)
+    new_value <- search_inputs[search_inputs != ""][1]
+    
+    # Search term becomes the value searched in whichever search bar
+    search_term(new_value)
+    
+    # Reset search bars to prepare next research
+    searchBarServer("searchBar1", autocomplete_list)
+    searchBarServer("searchBar2", autocomplete_list)
+    searchBarServer("searchBar3", autocomplete_list)
+    searchBarServer("searchBar4", autocomplete_list)
+    searchBarServer("searchBar5", autocomplete_list)
+    searchBarServer("searchBar6", autocomplete_list)
+    
   })
   
   # Add this observeEvent so when the reset button of the search bar module is used, search_term becomes NULL and filtered_data becomes the full dataset again
   observeEvent(input$reset_btn, {
     search_term("")
+    searchBarServer("searchBar", autocomplete_list)
   })
   
   
@@ -417,6 +443,7 @@ server <- function(input, output, session) {
                     filtered_count_data_tx())
       
     } else {
+      
       output$boxplot1 <- renderUI({ NULL })
       output$boxplot2 <- renderUI({ NULL })
       output$barplotTX <- renderUI({ NULL })
@@ -428,6 +455,15 @@ server <- function(input, output, session) {
   ###  TABSET 3 : DGE ###
   #########################
 
+  # Hide the Query tab if no gene is selected
+  observe ({
+    if (search_term() != ""){
+      showTab(inputId = "TabsetDGE", target = "Query")
+    } else {
+      hideTab(inputId = "TabsetDGE", target = "Query")
+    }
+  })
+  
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDGE <- renderUI({
     if (search_term() != ""){
@@ -551,6 +587,15 @@ server <- function(input, output, session) {
   ###  TABSET 4 : DTE ###
   #########################
   
+  # Hide the Query tab if no gene is selected
+  observe ({
+    if (search_term() != ""){
+      showTab(inputId = "TabsetDTE", target = "Query")
+    } else {
+      hideTab(inputId = "TabsetDTE", target = "Query")
+    }
+  })
+  
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDTE <- renderUI({
     if (search_term() != ""){
@@ -654,22 +699,22 @@ server <- function(input, output, session) {
       shinyjs::show("switchplot3")
       shinyjs::show("switchplot4")
       
-      switchPlotServer(id = "switchplot1",
-                       switch_data,
-                       "Glioblastoma",
-                       search_term())
-      switchPlotServer(id = "switchplot2",
-                       switch_data,
-                       "Lung",
-                       search_term())
-      switchPlotServer(id = "switchplot3",
-                       switch_data,
-                       "Melanoma",
-                       search_term())
-      switchPlotServer(id = "switchplot4",
-                       switch_data,
-                       "Prostate",
-                       search_term())
+      #switchPlotServer(id = "switchplot1",
+      #                 switch_data,
+      #                 "Glioblastoma",
+      #                 search_term())
+      #switchPlotServer(id = "switchplot2",
+      #                 switch_data,
+      #                 "Lung",
+      #                 search_term())
+      #switchPlotServer(id = "switchplot3",
+      #                 switch_data,
+      #                 "Melanoma",
+      #                 search_term())
+      #switchPlotServer(id = "switchplot4",
+      #                 switch_data,
+      #                 "Prostate",
+      #                 search_term())
     } else {
       shinyjs::hide("switchplot1")
       shinyjs::hide("switchplot2")

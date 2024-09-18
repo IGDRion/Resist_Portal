@@ -130,14 +130,36 @@ statboxServer <- function(id, data, target) {
         # Calculate ranks of the searched gene for all cancer types, among genes with the same orientation of differential expression as the searched gene
         rank_values <- reactive({
           req(data()$DGEall)
-          data()$DGEall %>%
-            mutate(orientation = ifelse(log2FoldChange >= 0, "up", "down")) %>%
-            group_by(cancer, orientation) %>%
+          
+          # Separating up and down regulated genes
+          DGEall_up <- data()$DGEall %>%
+            filter(log2FoldChange > 0)
+          DGEall_down <- data()$DGEall %>%
+            filter(log2FoldChange < 0)
+          
+          # Calculating rank
+          rank_up <- DGEall_up %>%
+            mutate(orientation = "up") %>%
+            group_by(cancer) %>%
             arrange(desc(log2FoldChange)) %>%
             mutate(rank = row_number()) %>%
             ungroup() %>%
             filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
-            dplyr::select(cancer, rank)
+            dplyr::select(cancer, rank, orientation)
+          
+          rank_down <- DGEall_down %>%
+            mutate(orientation = "down") %>%
+            group_by(cancer) %>%
+            arrange(log2FoldChange) %>%
+            mutate(rank = row_number()) %>%
+            ungroup() %>%
+            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            dplyr::select(cancer, rank, orientation)
+          
+          # Making final table with ranks of the searched genes
+          rank <- bind_rows(rank_up, rank_down)
+          
+          return(rank)
         })
         
         
@@ -153,7 +175,7 @@ statboxServer <- function(id, data, target) {
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.3f"), floor(rank))
+          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
         })
         
         # Lung: log2FC and rank
@@ -168,7 +190,7 @@ statboxServer <- function(id, data, target) {
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.3f"), floor(rank))
+          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
         })
         
         # Prostate: log2FC and rank
@@ -183,7 +205,7 @@ statboxServer <- function(id, data, target) {
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.3f"), floor(rank))
+          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
         })
         
         # Glioblastoma: log2FC and rank
@@ -198,7 +220,7 @@ statboxServer <- function(id, data, target) {
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.3f"), floor(rank))
+          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
         })
         
       }
