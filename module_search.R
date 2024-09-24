@@ -16,7 +16,7 @@ searchBarUI <- function(id_bar, id_button, id_reset){
                             selected = "",  # Set to empty string
                             multiple = FALSE,
                             options = list(
-                              placeholder = 'Search for a gene...',
+                              placeholder = 'e.g ENSG00000141510 / TP53',
                               create = FALSE,
                               maxOptions = 10,
                               loadThrottle = 100
@@ -43,7 +43,7 @@ searchBarServer <- function(id_bar, autocomplete_list) {
                        selected = "",  # Set to empty string when updating the search bars
                        session = getDefaultReactiveDomain(),
                        options = list(
-                         placeholder = 'Search for a gene...',
+                         placeholder = 'e.g ENSG00000141510 / TP53',
                          create = FALSE,
                          maxOptions = 10,
                          loadThrottle = 100

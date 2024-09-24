@@ -1,30 +1,47 @@
 statboxUI <- function(id){
   ns <- NS(id)
+  
   tagList(
     fluidRow(
-      summaryBox("Melanoma", 
-                 HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("melanoma_1st_line"))),
-                            "<br>",
-                            tags$span(style = "font-size: 0.8em;", textOutput(ns("melanoma_2nd_line"))))), 
-                 width = 6, icon = "fas fa-dna", style = "success", border = "bottom"),
-      summaryBox("Lung", 
-                 HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("lung_1st_line"))),
-                            "<br>",
-                            tags$span(style = "font-size: 0.8em;", textOutput(ns("lung_2nd_line"))))), 
-                 width = 6, icon = "fas fa-dna", style = "success", border = "bottom")
+      summaryBox(
+        title = HTML('<span style="color: #f5ab05;">Melanoma</span>'),  # Yellow
+        HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("melanoma_1st_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("melanoma_2nd_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("melanoma_3rd_line"))))), 
+        width = 6, icon = "fas fa-dna", style = "success", border = "bottom"
+      ),
+      summaryBox(
+        title = HTML('<span style="color: #00cc94;">Lung</span>'),  # Green
+        HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("lung_1st_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("lung_2nd_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("lung_3rd_line"))))), 
+        width = 6, icon = "fas fa-dna", style = "success", border = "bottom"
+      )
     ),
     br(),
     fluidRow(
-      summaryBox("Prostate", 
-                 HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("prostate_1st_line"))),
-                            "<br>",
-                            tags$span(style = "font-size: 0.8em;", textOutput(ns("prostate_2nd_line"))))), 
-                 width = 6, icon = "fas fa-dna", style = "success", border = "bottom"),
-      summaryBox("Glioblastoma", 
-                 HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("glioblastoma_1st_line"))),
-                            "<br>",
-                            tags$span(style = "font-size: 0.8em;", textOutput(ns("glioblastoma_2nd_line"))))), 
-                 width = 6, icon = "fas fa-dna", style = "success", border = "bottom")
+      summaryBox(
+        title = HTML('<span style="color: #0084cf;">Prostate</span>'),  # Blue
+        HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("prostate_1st_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("prostate_2nd_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("prostate_3rd_line"))))), 
+        width = 6, icon = "fas fa-dna", style = "success", border = "bottom"
+      ),
+      summaryBox(
+        title = HTML('<span style="color: #eb8dc1;">Glioblastoma</span>'),  # Pink
+        HTML(paste(tags$span(style = "font-size: 0.8em;", textOutput(ns("glioblastoma_1st_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("glioblastoma_2nd_line"))),
+                   #"<br>",
+                   tags$span(style = "font-size: 0.8em;", textOutput(ns("glioblastoma_3rd_line"))))), 
+        width = 6, icon = "fas fa-dna", style = "success", border = "bottom"
+      )
     )
   )
 }
@@ -127,15 +144,34 @@ statboxServer <- function(id, data, target) {
             dplyr::select(cancer, log2FoldChange)
         })
         
+        # The padj of the searched gene
+        padj_values <- reactive({
+          req(data()$DGEall, data()$search_term)
+          data()$DGEall %>%
+            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            dplyr::select(cancer, padj)
+        })
+        
+        # padj threshold value
+        padj_threshold <- reactive({
+          req(data()$padj_threshold)
+          if (data()$padj_threshold == "NONE") {
+            return(1)
+          } else {
+            return(data()$padj_threshold)
+          }
+        })
+        
         # Calculate ranks of the searched gene for all cancer types, among genes with the same orientation of differential expression as the searched gene
         rank_values <- reactive({
           req(data()$DGEall)
+          req(data()$padj_threshold)
           
           # Separating up and down regulated genes
           DGEall_up <- data()$DGEall %>%
-            filter(log2FoldChange > 0)
+            filter(log2FoldChange > 0 & padj < padj_threshold())
           DGEall_down <- data()$DGEall %>%
-            filter(log2FoldChange < 0)
+            filter(log2FoldChange < 0 & padj < padj_threshold())
           
           # Calculating rank
           rank_up <- DGEall_up %>%
@@ -172,10 +208,17 @@ statboxServer <- function(id, data, target) {
         })
         
         output$melanoma_2nd_line <- renderText({
+          padj <- padj_values() %>% 
+            dplyr::filter(cancer == "Melanoma") %>% 
+            dplyr::pull(padj)
+          paste0(data()$search_term, " padj: ", padj)
+        })
+        
+        output$melanoma_3rd_line <- renderText({
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
+          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
         })
         
         # Lung: log2FC and rank
@@ -187,10 +230,17 @@ statboxServer <- function(id, data, target) {
         })
         
         output$lung_2nd_line <- renderText({
+          padj <- padj_values() %>% 
+            dplyr::filter(cancer == "Lung") %>% 
+            dplyr::pull(padj)
+          paste0(data()$search_term, " padj: ", padj)
+        })
+        
+        output$lung_3rd_line <- renderText({
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
+          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
         })
         
         # Prostate: log2FC and rank
@@ -202,10 +252,17 @@ statboxServer <- function(id, data, target) {
         })
         
         output$prostate_2nd_line <- renderText({
+          padj <- padj_values() %>% 
+            dplyr::filter(cancer == "Prostate") %>% 
+            dplyr::pull(padj)
+          paste0(data()$search_term, " padj: ", padj)
+        })
+        
+        output$prostate_3rd_line <- renderText({
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
+          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
         })
         
         # Glioblastoma: log2FC and rank
@@ -217,10 +274,17 @@ statboxServer <- function(id, data, target) {
         })
         
         output$glioblastoma_2nd_line <- renderText({
+          padj <- padj_values() %>% 
+            dplyr::filter(cancer == "Glioblastoma") %>% 
+            dplyr::pull(padj)
+          paste0(data()$search_term, " padj: ", padj)
+        })
+        
+        output$glioblastoma_3rd_line <- renderText({
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(rank)
-          sprintf(paste0(data()$search_term," rank: %.0f"), rank)
+          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
         })
         
       }

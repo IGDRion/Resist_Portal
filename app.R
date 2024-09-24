@@ -126,8 +126,18 @@ ui <- page_navbar(
                         tabPanel(title = "Query",
                                  p(""),
                                  
-                                 #Search bar
-                                 searchBarUI("searchBar4", "submit_btn", "reset_btn"),
+                                 # Search bar + a slider for padj threshold
+                                 fluidRow(
+                                   column(6, align = "right",
+                                     sliderTextInput(inputId = "padj_threshold_DGEQuery",
+                                                     label = "padj Threshold:",
+                                                     choices = c(0.01, 0.05, "NONE"),
+                                                     selected = "NONE",
+                                                     grid = TRUE)
+                                   ),
+                                   column(6, align = "left",
+                                          searchBarUI("searchBar4", "submit_btn", "reset_btn"))
+                                 ),
                                  
                                  # Box test
                                  statboxUI("statboxDGEQuery"),
@@ -140,10 +150,9 @@ ui <- page_navbar(
                                  
                                  # Text to explain that volcano plot points are stopped when they are above a certain limit
                                  uiOutput("volcanoText")
-                                
                         )
-            
-            )),
+            )
+  ),
   
   nav_panel(title = "DTE",
             p(""),
@@ -218,7 +227,7 @@ server <- function(input, output, session) {
   count_data <- readRDS("./DATA/resist_transcript_expression.rds") %>%
     mutate_if(is.numeric, ~round(., digits = 3))
   
-  load("./DATA//Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
+  load("./DATA/Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
   DGEall <- DGEall %>%
     mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
   DTEall <- DTEall %>%
@@ -342,8 +351,8 @@ server <- function(input, output, session) {
     DT::datatable(filtered_count_data() %>%
                     group_by(gene_id, gene_name) %>%
                     summarise(
-                      X501Mel_S = median(c(X501Mel_1_S, X501Mel_2_S, X501Mel_3_S), na.rm = TRUE),
-                      X501Mel_R = median(c(X501Mel_1_R, X501Mel_2_R, X501Mel_3_R), na.rm = TRUE),
+                      `501Mel_S` = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
+                      `501Mel_R` = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
                       ADCA72_S = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
                       ADCA72_R = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
                       PC3_S = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
@@ -361,8 +370,8 @@ server <- function(input, output, session) {
     DT::datatable(filtered_count_data_tx() %>%
                     group_by(transcript_id, gene_id, gene_name) %>%
                     summarise(
-                      X501Mel_S = median(c(X501Mel_1_S, X501Mel_2_S, X501Mel_3_S), na.rm = TRUE),
-                      X501Mel_R = median(c(X501Mel_1_R, X501Mel_2_R, X501Mel_3_R), na.rm = TRUE),
+                      `501Mel_S` = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
+                      `501Mel_R` = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
                       ADCA72_S = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
                       ADCA72_R = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
                       PC3_S = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
@@ -397,7 +406,7 @@ server <- function(input, output, session) {
         startsWith(variable, "ADCA72") ~ "Lung",
         startsWith(variable, "PC3") ~ "Prostate",
         startsWith(variable, "U251") ~ "Glioblastoma",
-        startsWith(variable, "X501Mel") ~ "Melanoma"
+        startsWith(variable, "501Mel") ~ "Melanoma"
       )) %>%
       # Add new column with condition information (sensitive/resistant)
       mutate(condition = case_when(
@@ -520,11 +529,11 @@ server <- function(input, output, session) {
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
-                  target = 'row',
+                  target = 'cell',
                   backgroundColor = styleEqual(
                     c("Melanoma", "Lung", "Prostate", "Glioblastoma"),
                     c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
-                  )) # FormatStyle not working
+                  ))
   })
   
   # Render the DGE table for the query gene (4 rows, one per cancer)
@@ -533,11 +542,11 @@ server <- function(input, output, session) {
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
-                  target = 'row',
+                  target = 'cell',
                   backgroundColor = styleEqual(
                     c("Melanoma", "Lung", "Prostate", "Glioblastoma"),
                     c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
-                  )) # FormatStyle not working
+                  ))
   })
   
   
@@ -547,12 +556,12 @@ server <- function(input, output, session) {
       list(
         search_term = search_term(),
         DGEall = DGEall,
-        cancer_types = filtersDGE$cancer_types()
+        padj_threshold = input$padj_threshold_DGEQuery
       )
     } else {
       list(
         DGEall = DGEall,
-        cancer_types = filtersDGE$cancer_types()
+        padj_threshold = input$padj_threshold_DGEQuery
       )
     }
   })
@@ -640,7 +649,13 @@ server <- function(input, output, session) {
   output$DTETable <- renderDT({
     datatable(filtered_DTE_data(),
               options = list(ordering = TRUE, pageLength = 10),
-              rownames = FALSE)
+              rownames = FALSE) %>%
+      formatStyle(columns = 'cancer',
+                  target = 'cell',
+                  backgroundColor = styleEqual(
+                    c("Melanoma", "Lung", "Prostate", "Glioblastoma"),
+                    c("#f5ab05", "#00cc94", "#0084cf", "#eb8dc1")
+                  ))
   })
   
   

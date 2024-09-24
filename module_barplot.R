@@ -23,7 +23,7 @@ barplotServer <- function(id, count_barplot_data) {
       # Summarize the total value for each transcript_id and each group of samples
       summarized_data <- long_data %>%
         mutate(group = case_when(
-          str_detect(sample, "^X501Mel") ~ "Melanoma",
+          str_detect(sample, "^501Mel") ~ "Melanoma",
           str_detect(sample, "^ADCA72") ~ "Lung",
           str_detect(sample, "^PC3") ~ "Prostate",
           str_detect(sample, "^U251") ~ "Glioblastoma"
