@@ -30,9 +30,9 @@ boxplotServer <- function(id, type, count_boxplot_data, search_term) {
       
       plot_count <- function(data, id) {
         
-        ggplot(data = data, aes(x = cancer_condition, y = value, fill = cancer_condition)) +
+        ggplot(data = data, aes(x = condition, y = value, fill = cancer_condition)) +
           #geom_violin(trim = FALSE, alpha = 0.5) +
-          geom_boxplot(width = 0.1) +
+          geom_boxplot(width = 0.2) +
           geom_jitter(aes(shape = condition), size = 3) +
           scale_y_continuous(labels = scales::comma) +
           scale_fill_manual(values = c("Melanoma_Sensitive" = '#f5ab05' , "Melanoma_Resistant" = '#8c6100',
@@ -49,7 +49,8 @@ boxplotServer <- function(id, type, count_boxplot_data, search_term) {
           xlab(" ") +
           ggtitle(paste0("Count data of ", id, " across cancers")) +
           theme_bw(base_size = 20) +
-          theme(axis.text.x = element_text(angle = 45, hjust = 1))
+          theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+          facet_wrap(~ cancer_type, scales = "fixed", ncol = 4)
         
       }
       

@@ -178,7 +178,7 @@ statboxServer <- function(id, data, target) {
             mutate(orientation = "up") %>%
             group_by(cancer) %>%
             arrange(desc(log2FoldChange)) %>%
-            mutate(rank = row_number()) %>%
+            mutate(rank = paste0(row_number(), " / ", nrow(.))) %>%
             ungroup() %>%
             filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
@@ -187,13 +187,15 @@ statboxServer <- function(id, data, target) {
             mutate(orientation = "down") %>%
             group_by(cancer) %>%
             arrange(log2FoldChange) %>%
-            mutate(rank = row_number()) %>%
+            mutate(rank = paste0(row_number(), " / ", nrow(.))) %>%
             ungroup() %>%
             filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
           
           # Making final table with ranks of the searched genes
           rank <- bind_rows(rank_up, rank_down)
+          print(rank)
+          
           
           return(rank)
         })

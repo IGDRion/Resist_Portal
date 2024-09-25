@@ -1,7 +1,12 @@
+if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+if (!require("devtools", quietly = TRUE)) install.packages("devtools")
+if (!require("remotes", quietly = TRUE)) install.packages("remotes")
+
 if (!require("bslib")) install.packages("bslib")
 if (!require("DT")) install.packages("DT")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("patchwork")) devtools::install_github("thomasp85/patchwork")
 if (!require("plotly")) install.packages("plotly")
 if (!require("remotes")) install.packages("remotes")
 if (!require("reshape2")) install.packages("reshape2")
@@ -12,7 +17,6 @@ if (!require("shinyjs")) install.packages("shinyjs")
 if (!require("shinyWidgets")) install.packages("shinyWidgets")
 if (!require("stringr")) install.packages("stringr")
 if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
-if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
 
 
@@ -20,6 +24,7 @@ library(bslib)
 library(DT)
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 library(plotly)
 library(reshape2)
 library(shiny)
@@ -80,21 +85,36 @@ ui <- page_navbar(
             ),
   
   nav_panel(title = "Count",
-            p("Expressions are normalized based on TPM (transcripts per million)."),
+            p(""),
+            # Write which gene is currently selected at the top of the page
+            uiOutput("SelectedGeneTextCount"),
+            
             # Search bar 
             searchBarUI("searchBar2", "submit_btn", "reset_btn"),
+            p("Expressions are normalized based on TPM (transcripts per million)."),
+            
             tabsetPanel(id = "TabsetCount",
-                        tabPanel(title = "Gene",
+                        
+                        tabPanel(title = "All",
                                  # Count table
-                                 DTOutput(outputId = "CountTable") %>% withSpinner(),
-                                 # Boxplot
-                                 boxplotUI(id = "boxplot1")),
-                        tabPanel(title = "Transcript",
-                                 # Count table + Barplot
-                                  DTOutput(outputId = "CountTableTx") %>% withSpinner(),
-                                  barplotUI(id = "barplotTX") %>% withSpinner(),
-                                 # Boxplot
-                                  boxplotUI(id = "boxplot2"))
+                                 DTOutput(outputId = "CountTableFull") %>% withSpinner()
+                                 ),
+                        tabPanel(title = "Query",
+                                 # TabsetPanel inside the TabsetPanel
+                                 tabsetPanel(id = "TabsetCountQuery",
+                                             tabPanel(title = "Gene",
+                                                      # Count table
+                                                      DTOutput(outputId = "CountTable") %>% withSpinner(),
+                                                      # Boxplot
+                                                      boxplotUI(id = "boxplot1")),
+                                             tabPanel(title = "Transcript",
+                                                      # Count table + Barplot
+                                                      DTOutput(outputId = "CountTableTx") %>% withSpinner(),
+                                                      barplotUI(id = "barplotTX") %>% withSpinner(),
+                                                      # Boxplot
+                                                      boxplotUI(id = "boxplot2"))
+                                 )
+                        )
             )
   ),
   nav_panel(title = "DGE",
@@ -180,23 +200,32 @@ ui <- page_navbar(
   
   nav_panel(title = "DTU",
             p(""),
-            # Search bar + Filter box
-            fluidRow(
-              column(width = 6, align = "center",
-                     filtersBoxUI("filtersDTU", Dtype = "DU")
-              ),
-              column(width = 6, align = "center",
-                     searchBarUI("searchBar6", "submit_btn", "reset_btn"))
-              
-            ),
-            # DTU table
-            DTOutput(outputId = "DTUTable") %>% withSpinner(),
-            # switch plot
-            switchPlotUI(id = "switchplot1") %>% withSpinner(),
-            switchPlotUI(id = "switchplot2") %>% withSpinner(),
-            switchPlotUI(id = "switchplot3") %>% withSpinner(),
-            switchPlotUI(id = "switchplot4")
-            ),
+            # Write which gene is currently selected at the top of the page
+            uiOutput("SelectedGeneTextDTU"),
+            
+            tabsetPanel(id= "TabsetDTU",
+                        tabPanel(title = "All",
+                                 # Search bar + Filter box
+                                 fluidRow(
+                                   column(width = 6, align = "center",
+                                          filtersBoxUI("filtersDTU", Dtype = "DU")
+                                   ),
+                                   column(width = 6, align = "center",
+                                          searchBarUI("searchBar6", "submit_btn", "reset_btn"))
+                                   
+                                 ),
+                                 # DTU table
+                                 DTOutput(outputId = "DTUTableAll") %>% withSpinner()),
+                        tabPanel(title = "Query",
+                                 # DTU table
+                                 DTOutput(outputId = "DTUTableQuery") %>% withSpinner(),
+                                 # switch plot
+                                 switchPlotUI(id = "switchplot1") %>% withSpinner(),
+                                 switchPlotUI(id = "switchplot2") %>% withSpinner(),
+                                 switchPlotUI(id = "switchplot3") %>% withSpinner(),
+                                 switchPlotUI(id = "switchplot4") %>% withSpinner())
+            )
+  ),
   
   nav_spacer(),
   nav_item(
@@ -233,7 +262,7 @@ server <- function(input, output, session) {
   DTEall <- DTEall %>%
     mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
   DTUall <- DTUall %>%
-    mutate_if(is.numeric, ~round(., digits = 3))
+    mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3)))
   switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
   
   
@@ -307,7 +336,7 @@ server <- function(input, output, session) {
       chr <- filtered_summary_data()$seqnames
       start <- filtered_summary_data()$start
       end <- filtered_summary_data()$end
-      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome-euro.ucsc.edu/cgi-bin/hgTracks?db=hg38&lastVirtModeType=default&lastVirtModeExtraState=&virtModeType=default&virtMode=0&nonVirtPosition=&position=",chr,"%3A",start,"%2D",end,"&hgsid=344706747_gP5HfXMLpw1Xt9c5jPrhFRL6XYdl"), target = "_blank")
+      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome-euro.ucsc.edu/cgi-bin/hgTracks?db=hg38&lastVirtModeType=default&lastVirtModeExtraState=&virtModeType=default&virtMode=0&nonVirtPosition=&position=",chr,"%3A",start,"%2D",end), target = "_blank")
     } else {
       ""
     }
@@ -320,6 +349,30 @@ server <- function(input, output, session) {
   #########################
   ###  TABSET 2 : COUNT ###
   #########################
+  
+  # Hide the Query tab if no gene is selected
+  observe ({
+    if (search_term() != ""){
+      showTab(inputId = "TabsetCount", target = "Query")
+      showTab(inputId = "TabsetCountQuery", target = "Gene")
+      showTab(inputId = "TabsetCountQuery", target = "Transcript")
+    } else {
+      hideTab(inputId = "TabsetCountQuery", target = "Transcript")
+      hideTab(inputId = "TabsetCountQuery", target = "Gene")
+      hideTab(inputId = "TabsetCount", target = "Query")
+    }
+  })
+  
+  
+  # Text to display which gene has been searched and giving info to click on the query sub-tab.
+  output$SelectedGeneTextCount <- renderUI({
+    if (search_term() != ""){
+      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+    } else {
+      ""
+    }
+  })
+  
   
   ### PREPARE DATAFRAME (FILTERING WITH SEARCH TERM) AND DISPLAY THEM IN THE OUTPUT ###
   
@@ -346,19 +399,24 @@ server <- function(input, output, session) {
     }
   })
   
+  output$CountTableFull <- renderDT({
+    DT::datatable(count_data)
+  })
+  
   # Render the table with gene, with filtered_count_data
+  # Taking median of the 3 replicates for each cancer/condition, and renaming cell lines to cancer name
   output$CountTable <- renderDT({
     DT::datatable(filtered_count_data() %>%
                     group_by(gene_id, gene_name) %>%
                     summarise(
-                      `501Mel_S` = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
-                      `501Mel_R` = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
-                      ADCA72_S = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
-                      ADCA72_R = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
-                      PC3_S = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
-                      PC3_R = median(c(PC3_1_R, PC3_2_R, PC3_3_R), na.rm = TRUE),
-                      U251_S = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
-                      U251_R = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
+                      Melanoma_Sensitive = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
+                      Melanoma_Resistant = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
+                      Lung_Sensitive = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
+                      Lung_Resistant = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
+                      Prostate_Sensitive = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
+                      Prostate_Resistant = median(c(PC3_1_R, PC3_2_R, PC3_3_R), na.rm = TRUE),
+                      Glioblastoma_Sensitive = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
+                      Glioblastoma_Resistant = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
                       .groups = 'drop'
                     ),
                   options = list(ordering = TRUE, pageLength = 10),
@@ -366,18 +424,19 @@ server <- function(input, output, session) {
   })
   
   # Render the table with transcripts, with filtered_count_data_tx
+  # Taking median of the 3 replicates for each cancer/condition, and renaming cell lines to cancer name
   output$CountTableTx <- renderDT({
     DT::datatable(filtered_count_data_tx() %>%
                     group_by(transcript_id, gene_id, gene_name) %>%
                     summarise(
-                      `501Mel_S` = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
-                      `501Mel_R` = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
-                      ADCA72_S = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
-                      ADCA72_R = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
-                      PC3_S = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
-                      PC3_R = median(c(PC3_1_R, PC3_2_R, PC3_3_R), na.rm = TRUE),
-                      U251_S = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
-                      U251_R = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
+                      Melanoma_Sensitive = median(c(`501Mel_1_S`, `501Mel_2_S`, `501Mel_3_S`), na.rm = TRUE),
+                      Melanoma_Resistant = median(c(`501Mel_1_R`, `501Mel_2_R`, `501Mel_3_R`), na.rm = TRUE),
+                      Lung_Sensitive = median(c(ADCA72_1_S, ADCA72_2_S, ADCA72_3_S), na.rm = TRUE),
+                      Lung_Resistant = median(c(ADCA72_1_R, ADCA72_2_R, ADCA72_3_R), na.rm = TRUE),
+                      Prostate_Sensitive = median(c(PC3_1_S, PC3_2_S, PC3_3_S), na.rm = TRUE),
+                      Prostate_Resistant = median(c(PC3_1_R, PC3_2_R, PC3_3_R), na.rm = TRUE),
+                      Glioblastoma_Sensitive = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
+                      Glioblastoma_Resistant = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
                       .groups = 'drop'
                     ),
                   options = list(ordering = TRUE, pageLength = 10),
@@ -420,7 +479,7 @@ server <- function(input, output, session) {
         group_by(gene_id, variable, cancer_type, condition, cancer_condition) %>%
         summarise(value = sum(value, na.rm = TRUE), .groups = 'drop')
     }
-    
+
     return(data)
   }
   
@@ -663,18 +722,31 @@ server <- function(input, output, session) {
   ###  TABSET 5 : DTU ###
   #########################
   
+  # Hide the Query tab if no gene is selected
+  observe ({
+    if (search_term() != ""){
+      showTab(inputId = "TabsetDTU", target = "Query")
+    } else {
+      hideTab(inputId = "TabsetDTU", target = "Query")
+    }
+  })
+  
+  # Text to display which gene has been searched and giving info to click on the query sub-tab.
+  output$SelectedGeneTextDTU <- renderUI({
+    if (search_term() != ""){
+      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+    } else {
+      ""
+    }
+  })
+  
   ### PREPARE TABLE (FILTERING WITH SEARCH TERM) AND DISPLAY IT IN THE OUTPUT ###
   
   filtersDTU <- filtersBoxServer("filtersDTU")
   
   # Create a reactive value to store the DTE data, filtering it if a gene as been searched
-  filtered_DTU_data <- reactive({
+  filtered_DTU_data_All <- reactive({
     data <- DTUall
-    
-    # Apply gene search filter if a search term is provided
-    if (search_term() != "") {
-      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
-    }
     
     # Apply log2FoldChange filter based on DEside
     data <- data %>% 
@@ -697,8 +769,27 @@ server <- function(input, output, session) {
     return(data)
   })
   
-  output$DTUTable <- renderDT({
-    datatable(filtered_DTU_data(),
+  # Create a reactive value to store the DTE data, filtering it if a gene as been searched
+  filtered_DTU_data_Query <- reactive({
+    data <- DTUall
+    
+    # Apply gene search filter if a search term is provided
+    if (search_term() != "") {
+      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
+    }
+    
+    return(data)
+  })
+  
+  
+  output$DTUTableAll <- renderDT({
+    datatable(filtered_DTU_data_All(),
+              options = list(ordering = TRUE, pageLength = 10),
+              rownames = FALSE)
+  })
+  
+  output$DTUTableQuery <- renderDT({
+    datatable(filtered_DTU_data_Query(),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
   })
@@ -709,27 +800,38 @@ server <- function(input, output, session) {
     
     if (search_term() != "") {
       
-      shinyjs::show("switchplot1")
-      shinyjs::show("switchplot2")
-      shinyjs::show("switchplot3")
-      shinyjs::show("switchplot4")
+      if (search_term() %in% DTUall$gene_id | search_term() %in% DTUall$gene_id){
+        
+        shinyjs::show("switchplot1")
+        shinyjs::show("switchplot2")
+        shinyjs::show("switchplot3")
+        shinyjs::show("switchplot4")
+        
+        switchPlotServer(id = "switchplot1",
+                         switch_data,
+                         "Glioblastoma",
+                         search_term())
+        switchPlotServer(id = "switchplot2",
+                         switch_data,
+                         "Lung",
+                         search_term())
+        switchPlotServer(id = "switchplot3",
+                         switch_data,
+                         "Melanoma",
+                         search_term())
+        switchPlotServer(id = "switchplot4",
+                         switch_data,
+                         "Prostate",
+                         search_term())
+        
+      } else {
+        shinyjs::hide("switchplot1")
+        shinyjs::hide("switchplot2")
+        shinyjs::hide("switchplot3")
+        shinyjs::hide("switchplot4")
+
+      }
       
-      #switchPlotServer(id = "switchplot1",
-      #                 switch_data,
-      #                 "Glioblastoma",
-      #                 search_term())
-      #switchPlotServer(id = "switchplot2",
-      #                 switch_data,
-      #                 "Lung",
-      #                 search_term())
-      #switchPlotServer(id = "switchplot3",
-      #                 switch_data,
-      #                 "Melanoma",
-      #                 search_term())
-      #switchPlotServer(id = "switchplot4",
-      #                 switch_data,
-      #                 "Prostate",
-      #                 search_term())
     } else {
       shinyjs::hide("switchplot1")
       shinyjs::hide("switchplot2")

@@ -7,8 +7,11 @@ library(ggpubr)
 switchPlotUI <- function(id){ # ADD ARGUMENTS IF NEEDED
   ns <- NS(id)
  
-  # UI HERE 
-  plotOutput(outputId = ns("switchPlot"), height = "auto")
+  # UI HERE
+  fluidRow(
+    column(12, align = "center",
+           plotOutput(outputId = ns("switchPlot"), height = "auto"))
+  )
 
 }
 
@@ -36,22 +39,22 @@ switchPlotServer <- function(id, switch_data, cancerName, search_term) { # witho
         gene = search_term,
         condition1 = cond1,
         condition2 = cond2,
-        localTheme = theme_bw(base_size = 13) # making text sightly larger for vignette
+        localTheme = theme_bw(base_size = 16) # making text sightly larger for vignette
       )
       swPlot_usage <- switchPlotIsoUsage(
         switch_data, 
         gene = search_term,
         condition1 = cond1,
         condition2 = cond2,
-        localTheme = theme_bw(base_size = 13) 
+        localTheme = theme_bw(base_size = 16) 
       )
       switchPlots <- ggarrange(swPlot_tx, swPlot_usage,
-                               ncol = 1, nrow = 2)
+                               ncol = 2, nrow = 1)
       
       output$switchPlot <- renderPlot({
         switchPlots
-      }, width = 1000, height = function() {
-        500 * 2  # Adjust height based on the number of plots
+      }, width = 1920, height = function() {
+        300  # Adjust height based on the number of plots
       })
       
     }
