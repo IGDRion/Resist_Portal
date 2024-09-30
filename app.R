@@ -565,7 +565,7 @@ server <- function(input, output, session) {
     if (!is.null(filtersDGE$cancer_types())) {
       data <- data %>% filter(cancer %in% filtersDGE$cancer_types())
     }
-    
+ 
     return(data)
   })
   
@@ -584,7 +584,7 @@ server <- function(input, output, session) {
   
   # Render the filtered DGE table of All genes
   output$DGETableAll <- renderDT({
-    datatable(filtered_DGE_data_All(),
+    datatable(filtered_DGE_data_All() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -597,7 +597,7 @@ server <- function(input, output, session) {
   
   # Render the DGE table for the query gene (4 rows, one per cancer)
   output$DGETableQuery <- renderDT({
-    datatable(filtered_DGE_data_Query(),
+    datatable(filtered_DGE_data_Query() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -706,7 +706,7 @@ server <- function(input, output, session) {
   })
   
   output$DTETable <- renderDT({
-    datatable(filtered_DTE_data(),
+    datatable(filtered_DTE_data() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
