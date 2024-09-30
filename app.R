@@ -99,23 +99,19 @@ ui <- page_navbar(
                                  # Count table
                                  DTOutput(outputId = "CountTableFull") %>% withSpinner()
                                  ),
-                        tabPanel(title = "Query",
-                                 # TabsetPanel inside the TabsetPanel
-                                 tabsetPanel(id = "TabsetCountQuery",
-                                             tabPanel(title = "Gene",
-                                                      # Count table
-                                                      DTOutput(outputId = "CountTable") %>% withSpinner(),
-                                                      # Boxplot
-                                                      boxplotUI(id = "boxplot1")),
-                                             tabPanel(title = "Transcript",
-                                                      # Count table + Barplot
-                                                      DTOutput(outputId = "CountTableTx") %>% withSpinner(),
-                                                      barplotUI(id = "barplotTX") %>% withSpinner(),
-                                                      # Boxplot
-                                                      boxplotUI(id = "boxplot2"))
+                        tabPanel(title = "Query Gene Level",
+                                 # Count table
+                                 DTOutput(outputId = "CountTable") %>% withSpinner(),
+                                 # Boxplot
+                                 boxplotUI(id = "boxplot1")),
+                        tabPanel(title = "Query Transcript Level",
+                                 # Count table + Barplot
+                                 DTOutput(outputId = "CountTableTx") %>% withSpinner(),
+                                 barplotUI(id = "barplotTX") %>% withSpinner(),
+                                 # Boxplot
+                                 boxplotUI(id = "boxplot2")
                                  )
                         )
-            )
   ),
   nav_panel(title = "DGE",
             p(""),
@@ -358,9 +354,11 @@ server <- function(input, output, session) {
   # Hide the Query tab if no gene is selected
   observe ({
     if (search_term() != ""){
-      showTab(inputId = "TabsetCount", target = "Query")
+      showTab(inputId = "TabsetCount", target = "Query Gene Level")
+      showTab(inputId = "TabsetCount", target = "Query Transcript Level")
     } else {
-      hideTab(inputId = "TabsetCount", target = "Query")
+      hideTab(inputId = "TabsetCount", target = "Query Gene Level")
+      hideTab(inputId = "TabsetCount", target = "Query Transcript Level")
     }
   })
   
@@ -368,7 +366,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextCount <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tabs (at gene or transcript level) to get detailed information on it.")
     } else {
       ""
     }
