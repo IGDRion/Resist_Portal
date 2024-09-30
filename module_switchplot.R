@@ -39,6 +39,7 @@ switchPlotServer <- function(id, switch_data, cancerName, search_term) { # witho
         gene = search_term,
         condition1 = cond1,
         condition2 = cond2,
+        plotTopology = FALSE,
         localTheme = theme_bw(base_size = 16) # making text sightly larger for vignette
       )
       swPlot_usage <- switchPlotIsoUsage(

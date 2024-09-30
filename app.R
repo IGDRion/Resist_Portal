@@ -63,7 +63,7 @@ ui <- page_navbar(
   title = "Resist Portal",
   bg = "#70b684",
   inverse = TRUE,
-  nav_panel(title = "Main", 
+  nav_panel(title = "Summary", 
             p(
               HTML(
                 paste(
@@ -302,6 +302,11 @@ server <- function(input, output, session) {
   
   # Add this observeEvent so when the reset button of the search bar module is used, search_term becomes NULL and filtered_data becomes the full dataset again
   observeEvent(input$reset_btn, {
+    updateTabsetPanel(session, "TabsetCount", selected = "All")
+    updateTabsetPanel(session, "TabsetDGE", selected = "All")
+    updateTabsetPanel(session, "TabsetDTE", selected = "All")
+    updateTabsetPanel(session, "TabsetDTU", selected = "All")
+    
     search_term("")
     searchBarServer("searchBar", autocomplete_list)
   })
@@ -354,11 +359,7 @@ server <- function(input, output, session) {
   observe ({
     if (search_term() != ""){
       showTab(inputId = "TabsetCount", target = "Query")
-      showTab(inputId = "TabsetCountQuery", target = "Gene")
-      showTab(inputId = "TabsetCountQuery", target = "Transcript")
     } else {
-      hideTab(inputId = "TabsetCountQuery", target = "Transcript")
-      hideTab(inputId = "TabsetCountQuery", target = "Gene")
       hideTab(inputId = "TabsetCount", target = "Query")
     }
   })
@@ -400,7 +401,27 @@ server <- function(input, output, session) {
   })
   
   output$CountTableFull <- renderDT({
-    DT::datatable(count_data)
+    old_names <- c("501Mel_1_S", "501Mel_2_S", "501Mel_3_S",
+                   "501Mel_1_R", "501Mel_2_R", "501Mel_3_R",
+                   "ADCA72_1_S", "ADCA72_2_S", "ADCA72_3_S",
+                   "ADCA72_1_R", "ADCA72_2_R", "ADCA72_3_R",
+                   "PC3_1_S", "PC3_2_S", "PC3_3_S",
+                   "PC3_1_R", "PC3_2_R", "PC3_3_R",
+                   "U251_1_S", "U251_2_S", "U251_3_S",
+                   "U251_1_R", "U251_2_R", "U251_3_R")
+    new_names <- c("Melanoma_1_S", "Melanoma_2_S", "Melanoma_3_S",
+                   "Melanoma_1_R", "Melanoma_2_R", "Melanoma_3_R",
+                   "Lung_1_S", "Lung_2_S", "Lung_3_S",
+                   "Lung_1_R", "Lung_2_R", "Lung_3_R",
+                   "Prostate_1_S", "Prostate_2_S", "Prostate_3_S",
+                   "Prostate_1_R", "Prostate_2_R", "Prostate_3_R",
+                   "Glioblastoma_1_S", "Glioblastoma_2_S", "Glioblastoma_3_S",
+                   "Glioblastoma_1_R", "Glioblastoma_2_R", "Glioblastoma_3_R")
+    
+    DT::datatable(count_data %>%
+                    dplyr::rename_with(~ new_names[match(., old_names)],
+                                       all_of(old_names))
+                  ) 
   })
   
   # Render the table with gene, with filtered_count_data
@@ -859,6 +880,7 @@ server <- function(input, output, session) {
                - transforKmers cut-off: TFK < 0.2
                
                #### COUNT TAB
+               
                Count Data corresponds to the number of sequence fragments that have been assigned to each gene or transcript.
                These data are normalized based on TPM (transcripts per million) corresponding to a normalization by gene length followed by a normalization for sequencing depth.
                In the table, expression corresponds to the triplicates median for each condition.
