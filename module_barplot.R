@@ -1,7 +1,3 @@
-library(ggplot2)
-library(shiny)
-library(tidyverse)
-
 # UI module example
 barplotUI <- function(id) {
   ns <- NS(id)

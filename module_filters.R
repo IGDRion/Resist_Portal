@@ -1,5 +1,3 @@
-library(shiny)
-
 # UI module
 filtersBoxUI <- function(id, Dtype){
   ns <- NS(id)

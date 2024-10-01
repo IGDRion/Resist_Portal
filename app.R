@@ -6,8 +6,11 @@ if (!require("bslib")) install.packages("bslib")
 if (!require("DT")) install.packages("DT")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("ggpubr")) install.packages("ggpubr")
+if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
 if (!require("patchwork")) devtools::install_github("thomasp85/patchwork")
 if (!require("plotly")) install.packages("plotly")
+if (!require("purrr")) install.packages("purrr")
 if (!require("remotes")) install.packages("remotes")
 if (!require("reshape2")) install.packages("reshape2")
 if (!require("shiny")) install.packages("shiny")
@@ -17,15 +20,18 @@ if (!require("shinyjs")) install.packages("shinyjs")
 if (!require("shinyWidgets")) install.packages("shinyWidgets")
 if (!require("stringr")) install.packages("stringr")
 if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
-if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
+if (!require("tidyr")) install.packages("tidyr")
 
 
 library(bslib)
 library(DT)
 library(dplyr)
 library(ggplot2)
+library(ggpubr)
+library(IsoformSwitchAnalyzeR)
 library(patchwork)
 library(plotly)
+library(purrr)
 library(reshape2)
 library(shiny)
 library(shinycssloaders)
@@ -34,7 +40,8 @@ library(shinyjs)
 library(shinyWidgets)
 library(stringr)
 library(summaryBox)
-library(IsoformSwitchAnalyzeR)
+library(tidyr)
+
 
 # Bootstrap 4
 theme <- bslib::bs_theme(version = 4)
@@ -274,16 +281,12 @@ server <- function(input, output, session) {
   summary_data <- read.table("./DATA/summary_lncRNAresist.txt", header = TRUE)
   autocomplete_list <- unique(c(summary_data$gene_id, summary_data$gene_name))
 
-  count_data <- readRDS("./DATA/resist_transcript_expression.rds") %>%
-    mutate_if(is.numeric, ~round(., digits = 3))
+  count_data <- readRDS("./DATA/resist_transcript_expression.rds")
   
   load("./DATA/Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
-  DGEall <- DGEall %>%
-    mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
-  DTEall <- DTEall %>%
-    mutate(across(where(is.numeric) & !padj, ~round(., digits = 3)))
-  DTUall <- DTUall %>%
-    mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3)))
+  DGEall <- DGEall
+  DTEall <- DTEall
+  DTUall <- DTUall
   switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
   
   
@@ -432,8 +435,7 @@ server <- function(input, output, session) {
       count_data %>% 
         filter(gene_id == search_term() | gene_name == search_term()) %>% # If a gene has been searched, find and take only the row with the name of the gene
         group_by(gene_id, gene_name) %>% # Group by gene
-        summarise(across(where(is.numeric), sum, na.rm = TRUE), .groups = 'drop') %>% # Sum all numeric columns
-        mutate_if(is.numeric, ~round(., digits = 3)) # Round it again because the sum made it with more than 3 digits again
+        summarise(across(where(is.numeric), sum, na.rm = TRUE), .groups = 'drop') # Sum all numeric columns
     } else {
       NULL # If no gene has been searched, becomes NULL
     }
@@ -468,6 +470,7 @@ server <- function(input, output, session) {
                    "Glioblastoma_1_R", "Glioblastoma_2_R", "Glioblastoma_3_R")
     
     DT::datatable(count_data %>%
+                    mutate_if(is.numeric, ~round(., digits = 3)) %>%
                     dplyr::rename_with(~ new_names[match(., old_names)],
                                        all_of(old_names))
                   ) 
@@ -488,7 +491,8 @@ server <- function(input, output, session) {
                       Glioblastoma_Sensitive = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
                       Glioblastoma_Resistant = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
                       .groups = 'drop'
-                    ),
+                    ) %>%
+                    mutate_if(is.numeric, ~round(., digits = 3)),
                   options = list(ordering = TRUE, pageLength = 10),
                   rownames = TRUE)
   })
@@ -508,7 +512,8 @@ server <- function(input, output, session) {
                       Glioblastoma_Sensitive = median(c(U251_1_S, U251_2_S, U251_3_S), na.rm = TRUE),
                       Glioblastoma_Resistant = median(c(U251_1_R, U251_2_R, U251_3_R), na.rm = TRUE),
                       .groups = 'drop'
-                    ),
+                    ) %>%
+                    mutate_if(is.numeric, ~round(., digits = 3)),
                   options = list(ordering = TRUE, pageLength = 10),
                   rownames = TRUE)
   })
@@ -647,7 +652,9 @@ server <- function(input, output, session) {
   
   # Render the filtered DGE table of All genes
   output$DGETableAll <- renderDT({
-    datatable(filtered_DGE_data_All() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
+    datatable(filtered_DGE_data_All() %>%
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -660,7 +667,9 @@ server <- function(input, output, session) {
   
   # Render the DGE table for the query gene (4 rows, one per cancer)
   output$DGETableQuery <- renderDT({
-    datatable(filtered_DGE_data_Query() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
+    datatable(filtered_DGE_data_Query() %>% 
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -692,7 +701,7 @@ server <- function(input, output, session) {
   statboxServer("statboxDGEQuery", statboxDataDGE, "Query")
   
   # Creating list required for volcano server module + launching it
-  volcanoData <- reactive({
+  volcanoDataDGE <- reactive({
     req(search_term() != "")
     list(
       search_term = search_term(),
@@ -704,7 +713,7 @@ server <- function(input, output, session) {
     )
   })
   
-  volcanoServer("volcanoDGE", volcanoData)
+  volcanoServer("volcanoDGE", volcanoDataDGE, "DGE")
   
   output$volcanoText <- renderUI({
     if (search_term() != ""){
@@ -732,12 +741,7 @@ server <- function(input, output, session) {
   # Create a reactive value to store the DTE data, filtering it if a gene as been searched
   filtered_DTE_data_All <- reactive({
     data <- DTEall
-    
-    # Apply gene search filter if a search term is provided
-    if (search_term() != "") {
-      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
-    }
-    
+
     # Apply log2FoldChange filter based on DEside
     data <- data %>% 
       filter(case_when(
@@ -774,7 +778,9 @@ server <- function(input, output, session) {
   })
   
   output$DTETableAll <- renderDT({
-    datatable(filtered_DTE_data_All() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
+    datatable(filtered_DTE_data_All() %>% 
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -787,7 +793,9 @@ server <- function(input, output, session) {
 
     # Render the DTE table for the query gene (4 rows, one per cancer)
   output$DTETableQuery <- renderDT({
-    datatable(filtered_DTE_data_Query() %>% mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
+    datatable(filtered_DTE_data_Query() %>% 
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
@@ -798,6 +806,21 @@ server <- function(input, output, session) {
                   ))
   })
   
+  
+  # Creating list required for volcano server module + launching it
+  volcanoDataDTE <- reactive({
+    req(search_term() != "")
+    list(
+      search_term = search_term(),
+      DTEall = DTEall,
+      filtered_data = filtered_DTE_data_All(),
+      log2fc_threshold = filtersDTE$log2fc_threshold(),
+      padj_threshold = filtersDTE$padj_threshold(),
+      cancer_types = filtersDTE$cancer_types()
+    )
+  })
+  
+  volcanoServer("volcanoDTE", volcanoDataDTE, "DTE")
   
   #########################
   ###  TABSET 5 : DTU ###
@@ -857,13 +880,15 @@ server <- function(input, output, session) {
   
   
   output$DTUTableAll <- renderDT({
-    datatable(filtered_DTU_data_All(),
+    datatable(filtered_DTU_data_All() %>%
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
   })
   
   output$DTUTableQuery <- renderDT({
-    datatable(filtered_DTU_data_Query(),
+    datatable(filtered_DTU_data_Query()%>%
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
   })
@@ -874,7 +899,7 @@ server <- function(input, output, session) {
     
     if (search_term() != "") {
       
-      if (search_term() %in% DTUall$gene_id | search_term() %in% DTUall$gene_id){
+      if (search_term() %in% DTUall$gene_id | search_term() %in% DTUall$gene_name){
         
         shinyjs::show("switchplot1")
         shinyjs::show("switchplot2")

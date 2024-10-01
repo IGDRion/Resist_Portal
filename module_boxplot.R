@@ -1,9 +1,3 @@
-library(ggplot2)
-library(patchwork)
-library(purrr)
-library(shiny)
-
-
 # UI module example
 boxplotUI <- function(id){
   ns <- NS(id)

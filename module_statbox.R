@@ -162,6 +162,18 @@ statboxServer <- function(id, data, target) {
           }
         })
         
+        total_gene_nbr <- reactive({
+          a <- data()$DGEall %>%
+            mutate(expression = ifelse(log2FoldChange < 0, "down", "up")) %>%
+            group_by(cancer, expression) %>%
+            summarize(n = n())
+          print(a)
+          return(a)
+        })
+        
+        
+        
+        
         # Calculate ranks of the searched gene for all cancer types, among genes with the same orientation of differential expression as the searched gene
         rank_values <- reactive({
           req(data()$DGEall)
@@ -178,7 +190,7 @@ statboxServer <- function(id, data, target) {
             mutate(orientation = "up") %>%
             group_by(cancer) %>%
             arrange(desc(log2FoldChange)) %>%
-            mutate(rank = paste0(row_number(), " / ", nrow(.))) %>%
+            mutate(rank = paste0(row_number())) %>%
             ungroup() %>%
             filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
@@ -187,13 +199,15 @@ statboxServer <- function(id, data, target) {
             mutate(orientation = "down") %>%
             group_by(cancer) %>%
             arrange(log2FoldChange) %>%
-            mutate(rank = paste0(row_number(), " / ", nrow(.))) %>%
+            mutate(rank = paste0(row_number())) %>%
             ungroup() %>%
             filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
           
           # Making final table with ranks of the searched genes
           rank <- bind_rows(rank_up, rank_down)
+
+          print(rank_down)
           print(rank)
           
           
@@ -206,21 +220,28 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
+          sprintf(paste0(" Log2FC: %.3f"), log2fc)
         })
         
         output$melanoma_2nd_line <- renderText({
           padj <- padj_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(padj)
-          paste0(data()$search_term, " padj: ", padj)
+          paste0("padj: ", padj)
         })
         
         output$melanoma_3rd_line <- renderText({
+          orientation <- rank_values() %>% 
+            dplyr::filter(cancer == "Melanoma") %>% 
+            dplyr::pull(orientation)
+          
+          total_number <- total_gene_nbr() %>%
+            subset(cancer == "Melanoma" & expression == orientation)
+          
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(rank)
-          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
+          paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
         # Lung: log2FC and rank
@@ -228,21 +249,28 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
+          sprintf(paste0(" Log2FC: %.3f"), log2fc)
         })
         
         output$lung_2nd_line <- renderText({
           padj <- padj_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(padj)
-          paste0(data()$search_term, " padj: ", padj)
+          paste0("padj: ", padj)
         })
         
         output$lung_3rd_line <- renderText({
+          orientation <- rank_values() %>% 
+            dplyr::filter(cancer == "Lung") %>% 
+            dplyr::pull(orientation)
+          
+          total_number <- total_gene_nbr() %>%
+            subset(cancer == "Lung" & expression == orientation)
+          
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(rank)
-          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
+          paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
         # Prostate: log2FC and rank
@@ -250,21 +278,28 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
+          sprintf(paste0("Log2FC: %.3f"), log2fc)
         })
         
         output$prostate_2nd_line <- renderText({
           padj <- padj_values() %>% 
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(padj)
-          paste0(data()$search_term, " padj: ", padj)
+          paste0("padj: ", padj)
         })
         
         output$prostate_3rd_line <- renderText({
+          orientation <- rank_values() %>% 
+            dplyr::filter(cancer == "Prostate") %>% 
+            dplyr::pull(orientation)
+          
+          total_number <- total_gene_nbr() %>%
+            subset(cancer == "Prostate" & expression == orientation)
+          
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(rank)
-          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
+          paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
         # Glioblastoma: log2FC and rank
@@ -272,21 +307,28 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(data()$search_term," Log2FC: %.3f"), log2fc)
+          sprintf(paste0("Log2FC: %.3f"), log2fc)
         })
         
         output$glioblastoma_2nd_line <- renderText({
           padj <- padj_values() %>% 
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(padj)
-          paste0(data()$search_term, " padj: ", padj)
+          paste0("padj: ", padj)
         })
         
         output$glioblastoma_3rd_line <- renderText({
+          orientation <- rank_values() %>% 
+            dplyr::filter(cancer == "Glioblastoma") %>% 
+            dplyr::pull(orientation)
+          
+          total_number <- total_gene_nbr() %>%
+            subset(cancer == "Glioblastoma" & expression == orientation)
+          
           rank <- rank_values() %>% 
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(rank)
-          paste0(data()$search_term, " rank among genes with padj < ", padj_threshold(), ": ", rank)
+          paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
       }

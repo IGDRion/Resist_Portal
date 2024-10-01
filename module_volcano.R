@@ -1,16 +1,10 @@
-library(shiny)
-library(ggplot2)
-library(ggpubr)
-library(patchwork)
-library(shinycssloaders)
-
 volcanoUI <- function(id){
   ns <- NS(id)
   plotOutput(outputId = ns("plotVolcano")) %>% withSpinner()
 }
 
 
-volcanoServer <- function(id, data) {
+volcanoServer <- function(id, data, Dtype) {
   moduleServer(
     id = id,
     module = function(input, output, session) {

@@ -1,5 +1,3 @@
-library(shiny)
-
 # UI module
 searchBarUI <- function(id_bar, id_button, id_reset){
   tagList(

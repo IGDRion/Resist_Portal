@@ -1,9 +1,4 @@
-library(shiny)
-library(IsoformSwitchAnalyzeR)
-library(dplyr)
-library(ggpubr)
-
-# UI module example
+# UI module
 switchPlotUI <- function(id){ # ADD ARGUMENTS IF NEEDED
   ns <- NS(id)
  
@@ -16,7 +11,7 @@ switchPlotUI <- function(id){ # ADD ARGUMENTS IF NEEDED
 }
 
 
-# Server module example
+# Server module
 switchPlotServer <- function(id, switch_data, cancerName, search_term) { # without alpha and IF arguments
   moduleServer(
     id = id,
