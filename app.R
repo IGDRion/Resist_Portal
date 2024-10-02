@@ -283,12 +283,19 @@ server <- function(input, output, session) {
 
   count_data <- readRDS("./DATA/resist_transcript_expression.rds")
   
-  load("./DATA/Differential_analysis.RData") #Directly load into the environment DGEall, DTEall, and DTUall
+  load("./DATA/Differential_analysis.RData") #Directly load into the environment DGEall, DTEall
   DGEall <- DGEall
   DTEall <- DTEall
-  DTUall <- DTUall
+
   switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
-  
+  DTUall <- switch_data$isoformFeatures %>%
+    select(isoform_id, gene_id, condition_1, condition_2, gene_name, 
+         gene_biotype, iso_biotype, IF_overall, IF1,IF2, dIF, isoform_switch_q_value) %>%
+    rename(transcript_id = isoform_id, transcript_biotype = iso_biotype) %>%
+    mutate(cancer = case_when(grepl("glioblastoma", condition_1)~"Glioblastoma",
+                             grepl("lung", condition_1)~ "Lung",                        
+                             grepl("melanoma", condition_1)~ "Melanoma",
+                             grepl("prostate", condition_1)~ "Prostate"))
   
   ############################
   ###  SEARCH TERM VALUE ###
