@@ -888,14 +888,16 @@ server <- function(input, output, session) {
   
   output$DTUTableAll <- renderDT({
     datatable(filtered_DTU_data_All() %>%
-                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
   })
   
   output$DTUTableQuery <- renderDT({
     datatable(filtered_DTU_data_Query()%>%
-                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))) %>%
+                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
               options = list(ordering = TRUE, pageLength = 10),
               rownames = FALSE)
   })
