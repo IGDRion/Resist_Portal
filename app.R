@@ -344,6 +344,18 @@ server <- function(input, output, session) {
     
   })
   
+  
+  # Hide all Query tabs upon initialization while no gene as been searched
+  hideTab(inputId = "TabsetCount", target = "Query Gene Level")
+  hideTab(inputId = "TabsetCount", target = "Query Transcript Level")
+  
+  hideTab(inputId = "TabsetDGE", target = "Query")
+  
+  hideTab(inputId = "TabsetDTE", target = "Query")
+  
+  hideTab(inputId = "TabsetDTU", target = "Query")
+  
+  
   # Add this observeEvent so when the reset button of the search bar module is used, search_term becomes NULL and filtered_data becomes the full dataset again
   observeEvent(input$reset_btn, {
     updateTabsetPanel(session, "TabsetCount", selected = "All")
@@ -355,7 +367,7 @@ server <- function(input, output, session) {
       # Reset search term
       search_term("")
       
-      # Remove all query tabs
+      # Remove all query tabs when reset button pressed
       hideTab(inputId = "TabsetCount", target = "Query Gene Level")
       hideTab(inputId = "TabsetCount", target = "Query Transcript Level")
       
