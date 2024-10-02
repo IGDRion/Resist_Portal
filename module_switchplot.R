@@ -37,6 +37,11 @@ switchPlotServer <- function(id, switch_data, cancerName, search_term) { # witho
         plotTopology = FALSE,
         localTheme = theme_bw(base_size = 16) # making text sightly larger for vignette
       )
+      # rename plot title to fit the search term
+      swPlot_tx_name <-  paste0("Isoform switch in ", search_term, " (",cond1," vs ",cond2,")")
+      swPlot_tx$labels$title <- swPlot_tx_name
+      swPlot_tx <- swPlot_tx + theme(plot.title = element_text(size = 17)) # adjust title size
+      
       swPlot_usage <- switchPlotIsoUsage(
         switch_data, 
         gene = search_term,
@@ -44,6 +49,10 @@ switchPlotServer <- function(id, switch_data, cancerName, search_term) { # witho
         condition2 = cond2,
         localTheme = theme_bw(base_size = 16) 
       )
+
+      # rename plot title
+      swPlot_usage$labels$title <- "Isoform usage"
+      
       switchPlots <- ggarrange(swPlot_tx, swPlot_usage,
                                ncol = 2, nrow = 1)
       
