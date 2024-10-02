@@ -218,7 +218,7 @@ ui <- page_navbar(
                                  DTOutput(outputId = "DTETableQuery") %>% withSpinner(),
                                  
                                  # Volcano plot
-                                 #volcanoUI("volcanoDTE"),
+                                 volcanoUI("volcanoDTE"),
                                  
                                  # Text to explain that volcano plot points are stopped when they are above a certain limit
                                  uiOutput("volcanoText")
@@ -661,7 +661,7 @@ server <- function(input, output, session) {
     # Apply gene search filter if a search term is provided
     if (search_term() != "") {
       data <- DGEall
-      data <- data %>% filter(geneID == search_term() | gene_name == search_term())
+      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
       return(data)
     } else {
       NULL
@@ -724,11 +724,8 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
-      DGEall = DGEall,
-      filtered_data = filtered_DGE_data_All(),
-      log2fc_threshold = filtersDGE$log2fc_threshold(),
-      padj_threshold = filtersDGE$padj_threshold(),
-      cancer_types = filtersDGE$cancer_types()
+      dataAll = DGEall,
+      cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )
   })
   
@@ -831,11 +828,8 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
-      DTEall = DTEall,
-      filtered_data = filtered_DTE_data_All(),
-      log2fc_threshold = filtersDTE$log2fc_threshold(),
-      padj_threshold = filtersDTE$padj_threshold(),
-      cancer_types = filtersDTE$cancer_types()
+      dataAll = DTEall,
+      cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )
   })
   
@@ -883,7 +877,7 @@ server <- function(input, output, session) {
     return(data)
   })
   
-  # Create a reactive value to store the DTE data, filtering it if a gene as been searched
+  # Create a reactive value to store the DTU data, filtering it if a gene as been searched
   filtered_DTU_data_Query <- reactive({
     
     # Apply gene search filter if a search term is provided

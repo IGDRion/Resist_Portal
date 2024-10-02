@@ -9,17 +9,10 @@ volcanoServer <- function(id, data, Dtype) {
     id = id,
     module = function(input, output, session) {
       
-      filtered_data <- reactive({
-        req(data())
-        thresholdLOG2FC <- data()$log2fc_threshold
-        thresholdPADJ <- data()$padj_threshold
-        if (thresholdPADJ == "NONE") {
-          thresholdPADJ <- 1
-        } else {
-          thresholdPADJ <- as.numeric(thresholdPADJ)
-        }
+      prepared_data <- reactive({
+        req(data()$dataAll)
         
-        filtered <- data()$DGEall %>%
+        filtered <- data()$dataAll %>%
           mutate(
             # Change padj column to -log 
             padj = ifelse((padj == 0 | -log(padj) > 30), exp(-30), padj),
@@ -30,9 +23,9 @@ volcanoServer <- function(id, data, Dtype) {
             
             # Add diff column to tag each gene and know in which color they should be on the plot
             diff = case_when(
-              geneID == data()$search_term | gene_name == data()$search_term ~ "SEARCHED",
-              log2FoldChange >= thresholdLOG2FC & padj <= thresholdPADJ ~ "UPPER",
-              log2FoldChange <= -thresholdLOG2FC & padj <= thresholdPADJ ~ "UNDER",
+              gene_id == data()$search_term | gene_name == data()$search_term ~ "SEARCHED",
+              log2FoldChange > 0 ~ "UPPER",
+              log2FoldChange < 0 ~ "UNDER",
               TRUE ~ "NONE"
             )
           )
@@ -49,12 +42,12 @@ volcanoServer <- function(id, data, Dtype) {
       
       ### Create the volcano plot ###     
       VolcanoPlot <- reactive({
-        req(data()$filtered_data)
+        req(prepared_data())
         
         plot_list <- list()
         
         for(cancer_name in data()$cancer_types) {
-          cancer_data <- filtered_data() %>% filter(cancer == cancer_name)
+          cancer_data <- prepared_data() %>% filter(cancer == cancer_name)
           
           plot <- ggplot(cancer_data, aes(x = log2FoldChange, y = -log10(padj),
                                           fill = factor(diff),
@@ -68,9 +61,7 @@ volcanoServer <- function(id, data, Dtype) {
             geom_point(data = subset(cancer_data, diff == "SEARCHED"),
                        aes(stroke = .2),
                        size = 10) +
-            # add some lines
-            geom_vline(xintercept = data()$log2fc_threshold, linetype = "dashed", color = "grey") +
-            geom_vline(xintercept = -data()$log2fc_threshold, linetype = "dashed", color = "grey") +
+            # add a center line
             geom_vline(xintercept = 0, color = "black") +
             # Colors for Under/Overexpressed genes + shapes + x axis limits
             scale_fill_manual(values = c("UNDER" = "#56B4E9", "UPPER" = "#D55E00", "SEARCHED" = "#6ccf41")) +
@@ -167,7 +158,7 @@ volcanoServer <- function(id, data, Dtype) {
       #       symbol = 'circle',
       #       line = list(color = 'black', width = 1)  # Add a black border
       #     ),
-      #     text = ~paste("GeneID:", geneID, "<br>Gene name:", gene_name, 
+      #     text = ~paste("gene_id:", gene_id, "<br>Gene name:", gene_name, 
       #                   "<br>Log2FoldChange:", log2FoldChange, 
       #                   "<br>p-adjusted:", padj),
       #     hoverinfo = 'text'
