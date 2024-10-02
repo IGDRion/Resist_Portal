@@ -140,7 +140,7 @@ statboxServer <- function(id, data, target) {
         log2fc_values <- reactive({
           req(data()$DGEall, data()$search_term)
           data()$DGEall %>%
-            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            filter(gene_id == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, log2FoldChange)
         })
         
@@ -148,7 +148,7 @@ statboxServer <- function(id, data, target) {
         padj_values <- reactive({
           req(data()$DGEall, data()$search_term)
           data()$DGEall %>%
-            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            filter(gene_id == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, padj)
         })
         
@@ -192,7 +192,7 @@ statboxServer <- function(id, data, target) {
             arrange(desc(log2FoldChange)) %>%
             mutate(rank = paste0(row_number())) %>%
             ungroup() %>%
-            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            filter(gene_id == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
           
           rank_down <- DGEall_down %>%
@@ -201,7 +201,7 @@ statboxServer <- function(id, data, target) {
             arrange(log2FoldChange) %>%
             mutate(rank = paste0(row_number())) %>%
             ungroup() %>%
-            filter(geneID == data()$search_term | gene_name == data()$search_term) %>%
+            filter(gene_id == data()$search_term | gene_name == data()$search_term) %>%
             dplyr::select(cancer, rank, orientation)
           
           # Making final table with ranks of the searched genes
