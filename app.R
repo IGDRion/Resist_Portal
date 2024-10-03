@@ -110,13 +110,13 @@ ui <- page_navbar(
                                  # Count table
                                  DTOutput(outputId = "CountTable") %>% withSpinner(),
                                  # Boxplot
-                                 boxplotUI(id = "boxplot1")),
+                                 boxplotUI(id = "boxplotGene")),
                         tabPanel(title = "Query Transcript Level",
                                  # Count table + Barplot
                                  DTOutput(outputId = "CountTableTx") %>% withSpinner(),
                                  barplotUI(id = "barplotTX") %>% withSpinner(),
                                  # Boxplot
-                                 boxplotUI(id = "boxplot2")
+                                 boxplotUI(id = "boxplotTX")
                                  )
                         )
   ),
@@ -448,7 +448,7 @@ server <- function(input, output, session) {
   
   ### PREPARE DATAFRAME (FILTERING WITH SEARCH TERM) AND DISPLAY THEM IN THE OUTPUT ###
   
-  # Create a reactive value to store the count data, filtering it if a gene as been searched
+  # Create a reactive value to store the count data, filtering it if a gene has been searched
   filtered_count_data <- reactive({
     if (search_term() != "") {
       count_data %>% 
@@ -470,6 +470,7 @@ server <- function(input, output, session) {
     }
   })
   
+  # renaming columns for homogeneity
   output$CountTableFull <- renderDT({
     old_names <- c("501Mel_1_S", "501Mel_2_S", "501Mel_3_S",
                    "501Mel_1_R", "501Mel_2_R", "501Mel_3_R",
@@ -540,13 +541,13 @@ server <- function(input, output, session) {
   
   ### PREPARE DATAFRAME USED IN BOXPLOTS (FROM FILTERED DATAFRAME ABOVE) AND DISPLAY THEM IN THE OUTPUT ###
   
-  prepare_table <- function(data, type) {
+  prepare_table_boxplot <- function(data, type) {
     
     if (type == "gene") {
-      # Prepare data for the barplot with gene_id
+      # Prepare data for the boxplot with gene_id
       data <- melt(data)
     } else if (type == "tx") {
-      # Prepare data for the barplot with transcript_id
+      # Prepare data for the boxplot with transcript_id
       data <- data %>%
         dplyr::select(-c(gene_id, gene_name))
       data <- melt(data)
@@ -573,7 +574,8 @@ server <- function(input, output, session) {
         group_by(gene_id, variable, cancer_type, condition, cancer_condition) %>%
         summarise(value = sum(value, na.rm = TRUE), .groups = 'drop')
     }
-
+    
+    print(data)
     return(data)
   }
   
@@ -583,22 +585,22 @@ server <- function(input, output, session) {
 
     if (search_term() != "") {
       
-      shinyjs::show("boxplot1")
-      shinyjs::show("boxplot2")
+      shinyjs::show("boxplotGene")
+      shinyjs::show("boxplotTX")
       shinyjs::show("barplotTX")
       
-      count_barplot_data <- prepare_table(filtered_count_data(), "gene")
+      count_boxplot_data_gene <- prepare_table_boxplot(filtered_count_data(), "gene")
       
-      count_barplot_data_tx <- prepare_table(filtered_count_data_tx(), "tx")
+      count_boxplot_data_tx <- prepare_table_boxplot(filtered_count_data_tx(), "tx")
       
-      boxplotServer(id = "boxplot1",
+      boxplotServer(id = "boxplotGene",
                     type = "gene",
-                    count_barplot_data,
+                    count_boxplot_data_gene,
                     search_term())
       
-      boxplotServer(id = "boxplot2",
+      boxplotServer(id = "boxplotTX",
                     type = "tx",
-                    count_barplot_data_tx,
+                    count_boxplot_data_tx,
                     search_term())
       
       barplotServer(id = "barplotTX",
@@ -606,8 +608,8 @@ server <- function(input, output, session) {
       
     } else {
       
-      output$boxplot1 <- renderUI({ NULL })
-      output$boxplot2 <- renderUI({ NULL })
+      output$boxplotGene <- renderUI({ NULL })
+      output$boxplotTX <- renderUI({ NULL })
       output$barplotTX <- renderUI({ NULL })
     }
     
