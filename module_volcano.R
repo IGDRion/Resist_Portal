@@ -46,48 +46,90 @@ volcanoServer <- function(id, data, Dtype) {
         
         plot_list <- list()
         
-        for(cancer_name in data()$cancer_types) {
-          cancer_data <- prepared_data() %>% filter(cancer == cancer_name)
+        if (Dtype == "DGE"){
           
-          plot <- ggplot(cancer_data, aes(x = log2FoldChange, y = -log10(padj),
-                                          fill = factor(diff),
-                                          shape = gene_biotype)) +
-            # add a center line
-            geom_vline(xintercept = 0, color = "black") +
-            # First layer: UNDER and UPPER points
-            geom_point(data = subset(cancer_data, diff != "SEARCHED"),
-                       aes(size = gene_annot, stroke = .2),
-                       alpha = 0.5) +
-            # Second layer: SEARCHED points
-            geom_point(data = subset(cancer_data, diff == "SEARCHED"),
-                       aes(stroke = .2),
-                       size = 10) +
-            geom_text(data = subset(cancer_data, diff == "SEARCHED") %>%
-                        # Add unique ids to query transcripts to print it on volcano plot
-                        mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
-                        select(nbr, everything()),
-                      aes(label = nbr),
-                      color = "black",
-                      size = 5,
-                      show.legend = FALSE) +
-            # Colors for Under/Overexpressed genes + shapes + x axis limits
-            scale_fill_manual(values = c("UNDER" = "#56B4E9", "UPPER" = "#D55E00", "SEARCHED" = "#6ccf41")) +
-            scale_shape_manual(values = c("lncRNA" = 21, "protein_coding" = 23, "other" = 22)) +
-            scale_x_continuous(limits = c(min(cancer_data$log2FoldChange), 
-                                          max(cancer_data$log2FoldChange))) +
-            # Text & axis style
-            labs(x = "Log2FC", y = "-Log10(p.adj)", title = cancer_name,
-                 fill = "Differential Expression", size = "Origin", shape = "Gene Biotype") +
-            theme_minimal() +
-            theme(legend.position = "none", # Remove individual legend
-                  plot.title = element_text(size = 20),
-                  axis.title = element_text(size = 15),
-                  axis.text = element_text(size = 12),
-                  legend.title = element_text(size = 15),
-                  legend.text = element_text(size = 12))
+          for(cancer_name in data()$cancer_types) {
+            cancer_data <- prepared_data() %>% filter(cancer == cancer_name)
+            
+            plot <- ggplot(cancer_data, aes(x = log2FoldChange, y = -log10(padj),
+                                            fill = factor(diff),
+                                            shape = gene_biotype)) +
+              # add a center line
+              geom_vline(xintercept = 0, color = "black") +
+              # First layer: UNDER and UPPER points
+              geom_point(data = subset(cancer_data, diff != "SEARCHED"),
+                         aes(size = gene_annot, stroke = .2),
+                         alpha = 0.5) +
+              # Second layer: SEARCHED points
+              geom_point(data = subset(cancer_data, diff == "SEARCHED"),
+                         aes(stroke = .2),
+                         size = 10) +
+              # Colors for Under/Overexpressed genes + shapes + x axis limits
+              scale_fill_manual(values = c("UNDER" = "#56B4E9", "UPPER" = "#D55E00", "SEARCHED" = "#6ccf41")) +
+              scale_shape_manual(values = c("lncRNA" = 21, "protein_coding" = 23, "other" = 22)) +
+              scale_x_continuous(limits = c(min(cancer_data$log2FoldChange), 
+                                            max(cancer_data$log2FoldChange))) +
+              # Text & axis style
+              labs(x = "Log2FC", y = "-Log10(p.adj)", title = cancer_name,
+                   fill = "Differential Expression", size = "Origin", shape = "Gene Biotype") +
+              theme_minimal() +
+              theme(legend.position = "none", # Remove individual legend
+                    plot.title = element_text(size = 20),
+                    axis.title = element_text(size = 15),
+                    axis.text = element_text(size = 12),
+                    legend.title = element_text(size = 15),
+                    legend.text = element_text(size = 12))
+            
+            plot_list[[cancer_name]] <- plot
+          }
           
-          plot_list[[cancer_name]] <- plot
+        } else if (Dtype == "DTE") { # Add number identifiers to the transcript on the plot with geom_text
+          
+          for(cancer_name in data()$cancer_types) {
+            cancer_data <- prepared_data() %>% filter(cancer == cancer_name)
+            
+            plot <- ggplot(cancer_data, aes(x = log2FoldChange, y = -log10(padj),
+                                            fill = factor(diff),
+                                            shape = gene_biotype)) +
+              # add a center line
+              geom_vline(xintercept = 0, color = "black") +
+              # First layer: UNDER and UPPER points
+              geom_point(data = subset(cancer_data, diff != "SEARCHED"),
+                         aes(size = gene_annot, stroke = .2),
+                         alpha = 0.5) +
+              # Second layer: SEARCHED points
+              geom_point(data = subset(cancer_data, diff == "SEARCHED"),
+                         aes(stroke = .2),
+                         size = 10) +
+              geom_text(data = subset(cancer_data, diff == "SEARCHED") %>%
+                          # Add unique ids to query transcripts to print it on volcano plot
+                          mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
+                          select(nbr, everything()),
+                        aes(label = nbr),
+                        color = "black",
+                        size = 5,
+                        show.legend = FALSE) +
+              # Colors for Under/Overexpressed genes + shapes + x axis limits
+              scale_fill_manual(values = c("UNDER" = "#56B4E9", "UPPER" = "#D55E00", "SEARCHED" = "#6ccf41")) +
+              scale_shape_manual(values = c("lncRNA" = 21, "protein_coding" = 23, "other" = 22)) +
+              scale_x_continuous(limits = c(min(cancer_data$log2FoldChange), 
+                                            max(cancer_data$log2FoldChange))) +
+              # Text & axis style
+              labs(x = "Log2FC", y = "-Log10(p.adj)", title = cancer_name,
+                   fill = "Differential Expression", size = "Origin", shape = "Gene Biotype") +
+              theme_minimal() +
+              theme(legend.position = "none", # Remove individual legend
+                    plot.title = element_text(size = 20),
+                    axis.title = element_text(size = 15),
+                    axis.text = element_text(size = 12),
+                    legend.title = element_text(size = 15),
+                    legend.text = element_text(size = 12))
+            
+            plot_list[[cancer_name]] <- plot
+          }
+          
         }
+        
         
         # Extract legend from one plot to put it in th wrap
         legend_plot <- plot_list[[1]] + 
