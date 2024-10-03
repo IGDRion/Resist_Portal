@@ -167,7 +167,6 @@ statboxServer <- function(id, data, target) {
             mutate(expression = ifelse(log2FoldChange < 0, "down", "up")) %>%
             group_by(cancer, expression) %>%
             summarize(n = n())
-          print(a)
           return(a)
         })
         
@@ -207,10 +206,6 @@ statboxServer <- function(id, data, target) {
           # Making final table with ranks of the searched genes
           rank <- bind_rows(rank_up, rank_down)
 
-          print(rank_down)
-          print(rank)
-          
-          
           return(rank)
         })
         

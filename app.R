@@ -785,7 +785,11 @@ server <- function(input, output, session) {
     # Apply gene search filter if a search term is provided
     if (search_term() != "") {
       data <- DTEall
-      data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
+      data <- data %>% filter(gene_id == search_term() | gene_name == search_term()) %>%
+        # Add unique ids to query transcripts to print it on volcano plot
+        mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
+        select(nbr, everything())
+      
       return(data)
     } else {
       NULL

@@ -51,18 +51,25 @@ volcanoServer <- function(id, data, Dtype) {
           
           plot <- ggplot(cancer_data, aes(x = log2FoldChange, y = -log10(padj),
                                           fill = factor(diff),
-                                          size = gene_annot,
                                           shape = gene_biotype)) +
+            # add a center line
+            geom_vline(xintercept = 0, color = "black") +
             # First layer: UNDER and UPPER points
             geom_point(data = subset(cancer_data, diff != "SEARCHED"),
-                       aes(stroke = .2),
+                       aes(size = gene_annot, stroke = .2),
                        alpha = 0.5) +
             # Second layer: SEARCHED points
             geom_point(data = subset(cancer_data, diff == "SEARCHED"),
                        aes(stroke = .2),
                        size = 10) +
-            # add a center line
-            geom_vline(xintercept = 0, color = "black") +
+            geom_text(data = subset(cancer_data, diff == "SEARCHED") %>%
+                        # Add unique ids to query transcripts to print it on volcano plot
+                        mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
+                        select(nbr, everything()),
+                      aes(label = nbr),
+                      color = "black",
+                      size = 5,
+                      show.legend = FALSE) +
             # Colors for Under/Overexpressed genes + shapes + x axis limits
             scale_fill_manual(values = c("UNDER" = "#56B4E9", "UPPER" = "#D55E00", "SEARCHED" = "#6ccf41")) +
             scale_shape_manual(values = c("lncRNA" = 21, "protein_coding" = 23, "other" = 22)) +
@@ -76,7 +83,7 @@ volcanoServer <- function(id, data, Dtype) {
                   plot.title = element_text(size = 20),
                   axis.title = element_text(size = 15),
                   axis.text = element_text(size = 12),
-                  legend.title = element_text(size = 15), # Element text for legend text because of legend extraction just after
+                  legend.title = element_text(size = 15),
                   legend.text = element_text(size = 12))
           
           plot_list[[cancer_name]] <- plot
