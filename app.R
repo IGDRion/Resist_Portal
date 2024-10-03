@@ -422,7 +422,7 @@ server <- function(input, output, session) {
       chr <- filtered_summary_data()$seqnames
       start <- filtered_summary_data()$start
       end <- filtered_summary_data()$end
-      a(paste0("View ", term, " on UCSC"), href=paste0("https://genome-euro.ucsc.edu/cgi-bin/hgTracks?db=hg38&lastVirtModeType=default&lastVirtModeExtraState=&virtModeType=default&virtMode=0&nonVirtPosition=&position=",chr,"%3A",start,"%2D",end), target = "_blank")
+      a("View on UCSC with cDNA and dRNA data", href="https://genome-euro.ucsc.edu/s/abesson/lncRNAresist_hg38_Ensembl108_cDNA_dRNA", target = "_blank")
     } else {
       ""
     }
