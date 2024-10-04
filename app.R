@@ -248,10 +248,7 @@ ui <- page_navbar(
                                  # DTU table
                                  DTOutput(outputId = "DTUTableQuery") %>% withSpinner(),
                                  # switch plot
-                                 switchPlotUI(id = "switchplot1") %>% withSpinner(),
-                                 switchPlotUI(id = "switchplot2") %>% withSpinner(),
-                                 switchPlotUI(id = "switchplot3") %>% withSpinner(),
-                                 switchPlotUI(id = "switchplot4") %>% withSpinner())
+                                 switchPlotUI(id = "switchplot") %>% withSpinner())
             )
   ),
   
@@ -575,7 +572,7 @@ server <- function(input, output, session) {
         summarise(value = sum(value, na.rm = TRUE), .groups = 'drop')
     }
     
-    print(data)
+    #print(data)
     return(data)
   }
   
@@ -922,41 +919,18 @@ server <- function(input, output, session) {
       
       if (search_term() %in% DTUall$gene_id | search_term() %in% DTUall$gene_name){
         
-        shinyjs::show("switchplot1")
-        shinyjs::show("switchplot2")
-        shinyjs::show("switchplot3")
-        shinyjs::show("switchplot4")
+        shinyjs::show("switchplot")
         
-        switchPlotServer(id = "switchplot1",
+        switchPlotServer(id = "switchplot",
                          switch_data,
-                         "Glioblastoma",
-                         search_term())
-        switchPlotServer(id = "switchplot2",
-                         switch_data,
-                         "Lung",
-                         search_term())
-        switchPlotServer(id = "switchplot3",
-                         switch_data,
-                         "Melanoma",
-                         search_term())
-        switchPlotServer(id = "switchplot4",
-                         switch_data,
-                         "Prostate",
                          search_term())
         
       } else {
-        shinyjs::hide("switchplot1")
-        shinyjs::hide("switchplot2")
-        shinyjs::hide("switchplot3")
-        shinyjs::hide("switchplot4")
-
+        shinyjs::hide("switchplot")
       }
       
     } else {
-      shinyjs::hide("switchplot1")
-      shinyjs::hide("switchplot2")
-      shinyjs::hide("switchplot3")
-      shinyjs::hide("switchplot4")
+      shinyjs::hide("switchplot")
     }
     
   })
