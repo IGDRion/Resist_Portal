@@ -923,10 +923,16 @@ server <- function(input, output, session) {
         
         switchPlotServer(id = "switchplot",
                          switch_data,
-                         search_term())
+                         search_term(),
+                         "valid")
         
       } else {
-        shinyjs::hide("switchplot")
+        
+        switchPlotServer(id = "switchplot",
+                         switch_data,
+                         search_term(),
+                         "not-valid")
+        
       }
       
     } else {
