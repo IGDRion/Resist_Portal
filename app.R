@@ -7,6 +7,7 @@ if (!require("DT")) install.packages("DT")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("ggpubr")) install.packages("ggpubr")
+if (!require("gridExtra")) install.packages("gridExtra")
 if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyzeR")
 if (!require("patchwork")) devtools::install_github("thomasp85/patchwork")
 if (!require("plotly")) install.packages("plotly")
@@ -28,6 +29,7 @@ library(DT)
 library(dplyr)
 library(ggplot2)
 library(ggpubr)
+library(gridExtra)
 library(IsoformSwitchAnalyzeR)
 library(patchwork)
 library(plotly)
@@ -87,6 +89,8 @@ ui <- page_navbar(
             searchBarUI("searchBar1", "submit_btn", "reset_btn"),
             # Main summary table
             DTOutput(outputId = "SummaryTable") %>% withSpinner(), # withSpinner() display a loading spinner while the dataframe is not on screen
+            # download table
+            downloadButton("downloadSummary", "Download Summary Table"),
             # UCSC link
             uiOutput("UCSClink")
             ),
@@ -142,7 +146,10 @@ ui <- page_navbar(
                                  ),
                                  
                                  # DGE table All
-                                 DTOutput(outputId = "DGETableAll") %>% withSpinner()
+                                 DTOutput(outputId = "DGETableAll") %>% withSpinner(),
+                                 
+                                 # download table
+                                 downloadButton("downloadDGEall", "Download all DGE Table")
                                         
                         ),
                         tabPanel(title = "Query",
@@ -193,7 +200,10 @@ ui <- page_navbar(
                                    
                                  ),
                                  # DTE table
-                                 DTOutput(outputId = "DTETableAll") %>% withSpinner()
+                                 DTOutput(outputId = "DTETableAll") %>% withSpinner(),
+                                 
+                                 # download table
+                                 downloadButton("downloadDTEall", "Download all DTE Table")
                         ),
                         tabPanel(title = "Query",
                                  p(""),
@@ -216,6 +226,9 @@ ui <- page_navbar(
                                  
                                  # DGE table Query
                                  DTOutput(outputId = "DTETableQuery") %>% withSpinner(),
+                                 
+                                 # download table
+                                 downloadButton("downloadDTEquery", "Download query DTE Table"),
                                  
                                  # Volcano plot
                                  volcanoUI("volcanoDTE"),
@@ -243,12 +256,18 @@ ui <- page_navbar(
                                           searchBarUI("searchBar7", "submit_btn", "reset_btn"))
                                  ),
                                  # DTU table
-                                 DTOutput(outputId = "DTUTableAll") %>% withSpinner()),
+                                 DTOutput(outputId = "DTUTableAll") %>% withSpinner(),
+                                 # download table
+                                 downloadButton("downloadDTUall", "Download all DTU Table")
+                        ),
                         tabPanel(title = "Query",
                                  # DTU table
                                  DTOutput(outputId = "DTUTableQuery") %>% withSpinner(),
+                                 # download table
+                                 downloadButton("downloadDTUquery", "Download query DTU Table"),
                                  # switch plot
-                                 switchPlotUI(id = "switchplot") %>% withSpinner())
+                                 switchPlotUI(id = "switchplot") %>% withSpinner()
+                                 )
             )
   ),
   
@@ -424,6 +443,16 @@ server <- function(input, output, session) {
       ""
     }
   })
+  
+  # download summary table
+  output$downloadSummary <- downloadHandler(
+    filename = function() {
+      paste("summary_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_summary_data(), file, row.names = F, quote = F)
+    }
+  )
   
   output$UCSClink <- renderUI({
     UCSC_url()
@@ -653,6 +682,15 @@ server <- function(input, output, session) {
     return(data)
   })
   
+  # download summary table
+  output$downloadDGEall <- downloadHandler(
+    filename = function() {
+      paste("DGE_all_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_DGE_data_All(), file, row.names = F, quote = F)
+    }
+  )
   
   # Create a reactive value to store the DGE data,filtering to keep only the searched gene
   filtered_DGE_data_Query <- reactive({
@@ -777,6 +815,16 @@ server <- function(input, output, session) {
     
     return(data)
   })
+  
+  # download summary table
+  output$downloadDTEall <- downloadHandler(
+    filename = function() {
+      paste("DTE_all_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_DTE_data_All(), file, row.names = F, quote = F)
+    }
+  )
 
     # Create a reactive value to store the DTE data,filtering to keep only the searched gene
   filtered_DTE_data_Query <- reactive({
@@ -825,6 +873,15 @@ server <- function(input, output, session) {
                   ))
   })
   
+  # download summary table
+  output$downloadDTEquery <- downloadHandler(
+    filename = function() {
+      paste("DTE_query_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_DTE_data_Query(), file, row.names = F, quote = F)
+    }
+  )
   
   # Creating list required for volcano server module + launching it
   volcanoDataDTE <- reactive({
@@ -880,6 +937,16 @@ server <- function(input, output, session) {
     return(data)
   })
   
+  # download DTU table
+  output$downloadDTUall <- downloadHandler(
+    filename = function() {
+      paste("DTU_all_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_DTU_data_All(), file, row.names = F, quote = F)
+    }
+  )
+  
   # Create a reactive value to store the DTU data, filtering it if a gene as been searched
   filtered_DTU_data_Query <- reactive({
     
@@ -894,6 +961,15 @@ server <- function(input, output, session) {
     
   })
   
+  # download DTU table
+  output$downloadDTUquery <- downloadHandler(
+    filename = function() {
+      paste("DTU_query_data_", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      write.csv(filtered_DTU_data_Query(), file, row.names = F, quote = F)
+    }
+  )
   
   output$DTUTableAll <- renderDT({
     datatable(filtered_DTU_data_All() %>%
