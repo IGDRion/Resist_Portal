@@ -261,6 +261,11 @@ ui <- page_navbar(
                                  downloadButton("downloadDTUall", "Download all DTU Table")
                         ),
                         tabPanel(title = "Query",
+                                 p(""),
+                                 fluidRow(
+                                   column(width = 12, align = "center",
+                                          searchBarUI("searchBar8", "submit_btn", "reset_btn"))
+                                 ),
                                  # DTU table
                                  DTOutput(outputId = "DTUTableQuery") %>% withSpinner(),
                                  # download table
@@ -325,6 +330,7 @@ server <- function(input, output, session) {
   searchBarServer("searchBar5", autocomplete_list)
   searchBarServer("searchBar6", autocomplete_list)
   searchBarServer("searchBar7", autocomplete_list)
+  searchBarServer("searchBar8", autocomplete_list)
   
   # Create a reactive value to store the gene searched through the researched bar, so it can be used everywhere in the app
   search_term <- reactiveVal("")
@@ -338,12 +344,13 @@ server <- function(input, output, session) {
       input$searchBar4 != "",
       input$searchBar5 != "",
       input$searchBar6 != "",
-      input$searchBar7 != ""
+      input$searchBar7 != "",
+      input$searchBar8 != ""
     ))
     
     search_inputs <- c(input$searchBar1, input$searchBar2, input$searchBar3,
                        input$searchBar4, input$searchBar5, input$searchBar6,
-                       input$searchBar7)
+                       input$searchBar7, input$searchBar8)
     new_value <- search_inputs[search_inputs != ""][1]
     
     # Search term becomes the value searched in whichever search bar
@@ -357,6 +364,7 @@ server <- function(input, output, session) {
     searchBarServer("searchBar5", autocomplete_list)
     searchBarServer("searchBar6", autocomplete_list)
     searchBarServer("searchBar7", autocomplete_list)
+    searchBarServer("searchBar8", autocomplete_list)
     
   })
   
