@@ -844,6 +844,10 @@ server <- function(input, output, session) {
         # Add unique ids to query transcripts to print it on volcano plot
         mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
         select(nbr, everything())
+      # Apply padj filter if not "NONE"
+      if (input$padj_threshold_DTEQuery != "NONE") {
+        data <- data %>% filter(padj <= as.numeric(input$padj_threshold_DTEQuery))
+      }
       
       return(data)
     } else {

@@ -57,6 +57,7 @@ statboxServer <- function(id, data, target) {
         cancer_means <- reactive({
           req(data()$DGEall)
           data()$DGEall %>%
+            dplyr::filter(padj < 0.05) %>% 
             group_by(cancer) %>%
             summarise(
               mean_log2FC_up = mean(log2FoldChange[log2FoldChange >= 0], na.rm = TRUE),
@@ -70,7 +71,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(mean_log2FC_up)
           
-          sprintf("Mean upper Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC up (padj<0.05): %.3f", mean_value)
         })
 
         output$melanoma_2nd_line <- renderText({
@@ -78,7 +79,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(mean_log2FC_down)
           
-          sprintf("Mean under Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC dwn (padj<0.05): %.3f", mean_value)
         })
         
         # Lung : upper and under mean
@@ -87,7 +88,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(mean_log2FC_up)
           
-          sprintf("Mean upper Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC up (padj<0.05): %.3f", mean_value)
         })
         
         output$lung_2nd_line <- renderText({
@@ -95,7 +96,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(mean_log2FC_down)
           
-          sprintf("Mean under Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC dwn (padj<0.05): %.3f", mean_value)
         })
         
         # Prostate : upper and under mean
@@ -104,7 +105,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(mean_log2FC_up)
           
-          sprintf("Mean upper Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC up (padj<0.05): %.3f", mean_value)
         })
         
         output$prostate_2nd_line <- renderText({
@@ -112,7 +113,7 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Prostate") %>% 
             dplyr::pull(mean_log2FC_down)
           
-          sprintf("Mean under Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC dwn (padj<0.05): %.3f", mean_value)
         })
         
         # Glioblastoma : upper and under mean
@@ -121,15 +122,15 @@ statboxServer <- function(id, data, target) {
             dplyr::filter(cancer == "Glioblastoma") %>% 
             dplyr::pull(mean_log2FC_up)
           
-          sprintf("Mean upper Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC up (padj<0.05): %.3f", mean_value)
         })
         
         output$glioblastoma_2nd_line <- renderText({
           mean_value <- cancer_means() %>% 
-            dplyr::filter(cancer == "Glioblastoma") %>% 
+            dplyr::filter(cancer == "Glioblastoma") %>%
             dplyr::pull(mean_log2FC_down)
           
-          sprintf("Mean under Log2FC: %.3f", mean_value)
+          sprintf("Mean Log2FC dwn (padj<0.05): %.3f", mean_value)
         })
         
       }
