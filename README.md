@@ -18,7 +18,7 @@ On every menu, a search bar is here to search a gene (by its name or its gene ID
 
 ## Access to the application & Installation
 
-A ready-to-use version of the application is available on here. It can also be installed from gitHub and launched with the command: runApp('path/to/Resist_Portal'), or with the graphical interface of R studio through the app.R file. 
+A ready-to-use version of the application is available on [here](https://shiny-dog.univ-rennes.fr/Resist_Portal/). It can also be installed from gitHub and launched with the command: runApp('path/to/Resist_Portal'), or with the graphical interface of R studio through the app.R file. 
 
 If you choose to install from gitHub, download the following data file in the `DATA`repository: 
 [All_switchlist_DEXSeq.Rds](https://homeandco.genouest.org/api/download/groups/igdrion/lncrna_resist_cgo/secondary/cdna_SQK-DCS109/INPUT_RESIST_PORTAL/All_switchlist_DEXSeq.Rds?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7IlVpZCI6ImFiZXNzb24iLCJQYXNzd29yZCI6IiIsIlVpZE51bWJlciI6NTcxMDQsIkdpZE51bWJlciI6NDAzOTksIkhvbWUiOiIiLCJHcm91cHMiOlt7IkdpZE51bWJlciI6NDAzOTksIk5hbWUiOiJjbnJzX3VtcjYyOTAifSx7IkdpZE51bWJlciI6NDA5NDksIk5hbWUiOiJwcmpfaWdkcmlvbiJ9XSwiQWRtaW4iOmZhbHNlLCJTaGFyZXMiOlt7IlBhdGgiOiIvZ3JvdXBzL2lnZHJpb24vbG5jcm5hX3Jlc2lzdF9jZ28vc2Vjb25kYXJ5L2NkbmFfU1FLLURDUzEwOS9JTlBVVF9SRVNJU1RfUE9SVEFML0FsbF9zd2l0Y2hsaXN0X0RFWFNlcS5SZHMiLCJSZWFkV3JpdGUiOmZhbHNlLCJTaGFyZWRCeSI6bnVsbCwiRm9yYmlkcyI6bnVsbH1dfSwibmFtZSI6ImFub255bW91cyIsImV4cCI6MTczMDI3Mjg4OSwiaXNzIjoiaG9tZWFuZGNvIn0.6VOsVsixpg9KyqutcChk4Z62sXAy7haBsgVM09p4Gio) 
