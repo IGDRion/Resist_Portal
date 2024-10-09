@@ -216,7 +216,7 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Melanoma") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(" Log2FC: %.3f"), log2fc)
+          sprintf(paste0("Log2FC: %.3f"), log2fc)
         })
         
         output$melanoma_2nd_line <- renderText({
@@ -227,16 +227,24 @@ statboxServer <- function(id, data, target) {
         })
         
         output$melanoma_3rd_line <- renderText({
-          orientation <- rank_values() %>% 
-            dplyr::filter(cancer == "Melanoma") %>% 
+          req(rank_values(), total_gene_nbr(), padj_threshold())
+          
+          rank_data <- rank_values() %>% 
+            dplyr::filter(cancer == "Melanoma")
+          
+          if (nrow(rank_data) == 0) {
+            return("Rank not available (padj threshold not met)")
+          }
+          
+          orientation <- rank_data %>% 
             dplyr::pull(orientation)
           
           total_number <- total_gene_nbr() %>%
-            subset(cancer == "Melanoma" & expression == orientation)
+            dplyr::filter(cancer == "Melanoma" & expression == orientation)
           
-          rank <- rank_values() %>% 
-            dplyr::filter(cancer == "Melanoma") %>% 
+          rank <- rank_data %>% 
             dplyr::pull(rank)
+          
           paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
@@ -245,7 +253,7 @@ statboxServer <- function(id, data, target) {
           log2fc <- log2fc_values() %>% 
             dplyr::filter(cancer == "Lung") %>% 
             dplyr::pull(log2FoldChange)
-          sprintf(paste0(" Log2FC: %.3f"), log2fc)
+          sprintf(paste0("Log2FC: %.3f"), log2fc)
         })
         
         output$lung_2nd_line <- renderText({
@@ -256,16 +264,24 @@ statboxServer <- function(id, data, target) {
         })
         
         output$lung_3rd_line <- renderText({
-          orientation <- rank_values() %>% 
-            dplyr::filter(cancer == "Lung") %>% 
+          req(rank_values(), total_gene_nbr(), padj_threshold())
+          
+          rank_data <- rank_values() %>% 
+            dplyr::filter(cancer == "Lung")
+          
+          if (nrow(rank_data) == 0) {
+            return("Rank not available (padj threshold not met)")
+          }
+          
+          orientation <- rank_data %>% 
             dplyr::pull(orientation)
           
           total_number <- total_gene_nbr() %>%
-            subset(cancer == "Lung" & expression == orientation)
+            dplyr::filter(cancer == "Lung" & expression == orientation)
           
-          rank <- rank_values() %>% 
-            dplyr::filter(cancer == "Lung") %>% 
+          rank <- rank_data %>% 
             dplyr::pull(rank)
+          
           paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
@@ -285,16 +301,24 @@ statboxServer <- function(id, data, target) {
         })
         
         output$prostate_3rd_line <- renderText({
-          orientation <- rank_values() %>% 
-            dplyr::filter(cancer == "Prostate") %>% 
+          req(rank_values(), total_gene_nbr(), padj_threshold())
+          
+          rank_data <- rank_values() %>% 
+            dplyr::filter(cancer == "Prostate")
+          
+          if (nrow(rank_data) == 0) {
+            return("Rank not available (padj threshold not met)")
+          }
+          
+          orientation <- rank_data %>% 
             dplyr::pull(orientation)
           
           total_number <- total_gene_nbr() %>%
-            subset(cancer == "Prostate" & expression == orientation)
+            dplyr::filter(cancer == "Prostate" & expression == orientation)
           
-          rank <- rank_values() %>% 
-            dplyr::filter(cancer == "Prostate") %>% 
+          rank <- rank_data %>% 
             dplyr::pull(rank)
+          
           paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
@@ -314,16 +338,24 @@ statboxServer <- function(id, data, target) {
         })
         
         output$glioblastoma_3rd_line <- renderText({
-          orientation <- rank_values() %>% 
-            dplyr::filter(cancer == "Glioblastoma") %>% 
+          req(rank_values(), total_gene_nbr(), padj_threshold())
+          
+          rank_data <- rank_values() %>% 
+            dplyr::filter(cancer == "Glioblastoma")
+          
+          if (nrow(rank_data) == 0) {
+            return("Rank not available (padj threshold not met)")
+          }
+          
+          orientation <- rank_data %>% 
             dplyr::pull(orientation)
           
           total_number <- total_gene_nbr() %>%
-            subset(cancer == "Glioblastoma" & expression == orientation)
+            dplyr::filter(cancer == "Glioblastoma" & expression == orientation)
           
-          rank <- rank_values() %>% 
-            dplyr::filter(cancer == "Glioblastoma") %>% 
+          rank <- rank_data %>% 
             dplyr::pull(rank)
+          
           paste0("Log2FC rank among genes with padj < ", padj_threshold(), ": ", rank, " / ", total_number$n)
         })
         
