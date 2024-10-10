@@ -55,7 +55,7 @@ barplotServer <- function(id, count_barplot_data) {
       
       output$countBarplotTX <- renderPlot({
         barplot
-      }, height = 300)
+      }, height = 400)
     }
   )
 }

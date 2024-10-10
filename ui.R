@@ -150,7 +150,11 @@ ui <- page_navbar(
                                  volcanoUI("volcanoDGE"),
                                  
                                  # Text to explain that volcano plot points are stopped when they are above a certain limit
-                                 uiOutput("volcanoText")
+                                 uiOutput("volcanoTextDGE"),
+                                 
+                                 # barplot of count data for DGE to see difference in expression
+                                 boxplotUI(id = "boxplotDGE")
+                                 
                         )
             )
   ),
@@ -206,7 +210,7 @@ ui <- page_navbar(
                                  volcanoUI("volcanoDTE"),
                                  
                                  # Text to explain that volcano plot points are stopped when they are above a certain limit
-                                 uiOutput("volcanoText")
+                                 uiOutput("volcanoTextDTE")
                         )
             )
             

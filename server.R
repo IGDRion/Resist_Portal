@@ -387,6 +387,7 @@ server <- function(input, output, session) {
       shinyjs::show("boxplotGene")
       shinyjs::show("boxplotTX")
       shinyjs::show("barplotTX")
+      shinyjs::show("boxplotDGE")
       
       count_boxplot_data_gene <- prepare_table_boxplot(filtered_count_data(), "gene")
       
@@ -395,21 +396,30 @@ server <- function(input, output, session) {
       boxplotServer(id = "boxplotGene",
                     type = "gene",
                     count_boxplot_data_gene,
+                    DGEall,
                     search_term())
       
       boxplotServer(id = "boxplotTX",
                     type = "tx",
                     count_boxplot_data_tx,
+                    DGEall,
                     search_term())
       
       barplotServer(id = "barplotTX",
                     filtered_count_data_tx())
+      
+      boxplotServer(id = "boxplotDGE", 
+                    type = "DGE", 
+                    count_boxplot_data_gene,
+                    DGEall,
+                    search_term())
       
     } else {
       
       output$boxplotGene <- renderUI({ NULL })
       output$boxplotTX <- renderUI({ NULL })
       output$barplotTX <- renderUI({ NULL })
+      output$boxplotDGE <- renderUI({ NULL })
     }
     
   })
@@ -541,13 +551,15 @@ server <- function(input, output, session) {
   
   volcanoServer("volcanoDGE", volcanoDataDGE, "DGE")
   
-  output$volcanoText <- renderUI({
+  output$volcanoTextDGE <- renderUI({
     if (search_term() != ""){
       HTML("<i>Note: Outlier points beyond the axes limits have been constrained to improve plot readability.</i>")
     } else {
       ""
     }
   })
+  
+  # BoxplotServer for DGE is done above inside the observe block with all other boxplot generation
   
   #########################
   ###  TABSET 4 : DTE ###
@@ -671,6 +683,14 @@ server <- function(input, output, session) {
   })
   
   volcanoServer("volcanoDTE", volcanoDataDTE, "DTE")
+  
+  output$volcanoTextDTE <- renderUI({
+    if (search_term() != ""){
+      HTML("<i>Note: Outlier points beyond the axes limits have been constrained to improve plot readability.</i>")
+    } else {
+      ""
+    }
+  })
   
   #########################
   ###  TABSET 5 : DTU ###
