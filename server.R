@@ -482,6 +482,10 @@ server <- function(input, output, session) {
     if (search_term() != "") {
       data <- DGEall
       data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
+      # Apply padj filter if not "NONE"
+      if (input$padj_threshold_DGEQuery != "NONE") {
+        data <- data %>% filter(padj <= as.numeric(input$padj_threshold_DGEQuery))
+      }
       return(data)
     } else {
       NULL
@@ -544,6 +548,7 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
+      padj_threshold = input$padj_threshold_DGEQuery,
       dataAll = DGEall,
       cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )
@@ -677,6 +682,7 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
+      padj_threshold = input$padj_threshold_DTEQuery,
       dataAll = DTEall,
       cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )

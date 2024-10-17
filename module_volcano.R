@@ -9,6 +9,15 @@ volcanoServer <- function(id, data, Dtype) {
     id = id,
     module = function(input, output, session) {
       
+      padj_threshold <- reactive({
+        if (data()$padj_threshold == "NONE"){
+          return(1)
+        } else {
+          return(as.numeric(data()$padj_threshold))
+        }
+      })
+      
+      
       prepared_data <- reactive({
         req(data()$dataAll)
         
@@ -23,7 +32,7 @@ volcanoServer <- function(id, data, Dtype) {
             
             # Add diff column to tag each gene and know in which color they should be on the plot
             diff = case_when(
-              gene_id == data()$search_term | gene_name == data()$search_term ~ "SEARCHED",
+              (gene_id == data()$search_term | gene_name == data()$search_term) & padj <= padj_threshold() ~ "SEARCHED",
               log2FoldChange > 0 ~ "UPPER",
               log2FoldChange < 0 ~ "UNDER",
               TRUE ~ "NONE"
@@ -32,9 +41,7 @@ volcanoServer <- function(id, data, Dtype) {
 
           # Keep only upper and under regulated genes to reduce lag when plotting
           filtered <- filtered %>% 
-            filter(diff != "NONE") %>%
-          # Remove rows with NA in specific columns (columns needed for volcano)
-          filter(complete.cases(padj, log2FoldChange, gene_biotype))
+            filter(diff != "NONE")
         
         return(filtered)
       })
@@ -57,11 +64,15 @@ volcanoServer <- function(id, data, Dtype) {
               # add a center line
               geom_vline(xintercept = 0, color = "black") +
               # First layer: UNDER and UPPER points
-              geom_point(data = subset(cancer_data, diff != "SEARCHED"),
+              geom_point(data = subset(cancer_data, diff != "SEARCHED") %>%
+                           # Remove rows with NA in specific columns (columns needed for volcano)
+                           filter(complete.cases(padj, log2FoldChange, gene_biotype)),
                          aes(size = gene_annot, stroke = .2),
                          alpha = 0.5) +
               # Second layer: SEARCHED points
-              geom_point(data = subset(cancer_data, diff == "SEARCHED"),
+              geom_point(data = subset(cancer_data, diff == "SEARCHED") %>%
+                           # Remove rows with NA in specific columns (columns needed for volcano)
+                           filter(complete.cases(padj, log2FoldChange, gene_biotype)),
                          aes(stroke = .2),
                          size = 10) +
               # Colors for Under/Overexpressed genes + shapes + x axis limits
@@ -94,17 +105,24 @@ volcanoServer <- function(id, data, Dtype) {
               # add a center line
               geom_vline(xintercept = 0, color = "black") +
               # First layer: UNDER and UPPER points
-              geom_point(data = subset(cancer_data, diff != "SEARCHED"),
+              geom_point(data = subset(cancer_data, diff != "SEARCHED") %>%
+                           # Remove rows with NA in specific columns (columns needed for volcano)
+                           filter(complete.cases(padj, log2FoldChange, gene_biotype)),
                          aes(size = gene_annot, stroke = .2),
                          alpha = 0.5) +
               # Second layer: SEARCHED points
-              geom_point(data = subset(cancer_data, diff == "SEARCHED"),
+              geom_point(data = subset(cancer_data, diff == "SEARCHED") %>%
+                           # Remove rows with NA in specific columns (columns needed for volcano)
+                           filter(complete.cases(padj, log2FoldChange, gene_biotype)),
                          aes(stroke = .2),
                          size = 10) +
-              geom_text(data = subset(cancer_data, diff == "SEARCHED") %>%
+              geom_text(data = subset(cancer_data, gene_id == data()$search_term | gene_name == data()$search_term) %>%
                           # Add unique ids to query transcripts to print it on volcano plot
                           mutate(nbr = match(transcript_id, unique(transcript_id))) %>%
-                          select(nbr, everything()),
+                          filter(padj <= padj_threshold()) %>%
+                          select(nbr, everything()) %>%
+                          # Remove rows with NA in specific columns (columns needed for volcano)
+                          filter(complete.cases(padj, log2FoldChange, gene_biotype)),
                         aes(label = nbr),
                         color = "black",
                         size = 5,
