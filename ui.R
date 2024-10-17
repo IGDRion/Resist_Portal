@@ -40,7 +40,7 @@ ui <- page_navbar(
   # (e.g. hide, show, toggle)
   useShinyjs(), 
   
-  
+  id = "navbar",
   title = "Resist Portal",
   bg = "#70b684",
   inverse = TRUE,
@@ -252,7 +252,33 @@ ui <- page_navbar(
             )
   ),
   
+  #Create glowing effect
+  tags$head(
+    tags$style(HTML(
+      "@keyframes glowing {
+         0% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         10% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         20% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         30% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         40% { background-color: #EA7D36; box-shadow: 0 0 10px #FEE2CF; color: #FFFFFF}
+         50% { background-color: #EA7D36; box-shadow: 0 0 25px #FEE2CF; color: #FFFFFF}
+         60% { background-color: #EA7D36; box-shadow: 0 0 40px #FEE2CF; color: #FFFFFF}
+         70% { background-color: #EA7D36; box-shadow: 0 0 25px #FEE2CF; color: #FFFFFF}
+         80% { background-color: #EA7D36; box-shadow: 0 0 10px #FEE2CF; color: #FFFFFF}
+         90% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         100% { background-color: #EA7D36; box-shadow: 0 0 0 #FEE2CF; color: #FFFFFF}
+         }"
+    ))),
+  
   nav_spacer(),
+  nav_item(
+    actionButton(
+      inputId = "dRNAButton",
+      label = "dRNA",
+      icon = icon("fas fa-dna"),
+      style = "animation: glowing 2000ms infinite;"
+    )
+  ),
   nav_item(
     actionButton(
       inputId = "infoButton",
