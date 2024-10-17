@@ -131,6 +131,13 @@ server <- function(input, output, session) {
     searchBarServer("searchBar7", autocomplete_list)
     searchBarServer("searchBar8", autocomplete_list)
     
+    
+    updateTabsetPanel(session, "TabsetCount", selected = "Query Gene Level")
+    updateTabsetPanel(session, "TabsetDGE", selected = "Query")
+    updateTabsetPanel(session, "TabsetDTE", selected = "Query")
+    updateTabsetPanel(session, "TabsetDTU", selected = "Query")
+    
+    
   })
   
   
@@ -238,7 +245,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextCount <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tabs (at gene or transcript level) to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tabs (at gene or transcript level) contain detailed information on it.")
     } else {
       ""
     }
@@ -431,7 +438,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDGE <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
@@ -573,7 +580,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDTE <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
@@ -705,7 +712,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDTU <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
