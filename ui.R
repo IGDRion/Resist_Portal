@@ -1,3 +1,4 @@
+library(arrow)
 library(bslib)
 library(DT)
 library(dplyr)
