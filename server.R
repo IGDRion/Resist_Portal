@@ -2,6 +2,7 @@ if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 if (!require("devtools", quietly = TRUE)) install.packages("devtools")
 if (!require("remotes", quietly = TRUE)) install.packages("remotes")
 
+if (!require("arrow")) install.packages("arrow")
 if (!require("bslib")) install.packages("bslib")
 if (!require("DT")) install.packages("DT")
 if (!require("dplyr")) install.packages("dplyr")
@@ -12,6 +13,7 @@ if (!require("IsoformSwitchAnalyzeR")) BiocManager::install("IsoformSwitchAnalyz
 if (!require("patchwork")) devtools::install_github("thomasp85/patchwork")
 if (!require("plotly")) install.packages("plotly")
 if (!require("purrr")) install.packages("purrr")
+if (!require("qs")) install.packages("qs")
 if (!require("remotes")) install.packages("remotes")
 if (!require("reshape2")) install.packages("reshape2")
 if (!require("shiny")) install.packages("shiny")
@@ -24,6 +26,7 @@ if (!require("summaryBox")) remotes::install_github("deepanshu88/summaryBox")
 if (!require("tidyr")) install.packages("tidyr")
 
 
+library(arrow)
 library(bslib)
 library(DT)
 library(dplyr)
@@ -34,6 +37,7 @@ library(IsoformSwitchAnalyzeR)
 library(patchwork)
 library(plotly)
 library(purrr)
+library(qs)
 library(reshape2)
 library(shiny)
 library(shinycssloaders)
@@ -64,16 +68,15 @@ source("./module_switchplot.R")
 server <- function(input, output, session) {
   
   # Import datasets
-  summary_data <- read.table("./DATA/summary_lncRNAresist.txt", header = TRUE)
+  summary_data <- read_feather("./DATA/summary.feather")
   autocomplete_list <- unique(c(summary_data$gene_id, summary_data$gene_name))
 
-  count_data <- readRDS("./DATA/resist_transcript_expression.rds")
-  
-  load("./DATA/Differential_analysis.RData") #Directly load into the environment DGEall, DTEall
-  DGEall <- DGEall
-  DTEall <- DTEall
+  count_data <- read_feather("./DATA/count.feather")
 
-  switch_data <- readRDS("./DATA/All_switchlist_DEXSeq.Rds")
+  DGEall <- read_feather("./DATA/DGEall.feather")
+  DTEall <- read_feather("./DATA/DTEall.feather")
+
+  switch_data <- qread("./DATA/DTUall.qs")
   DTUall <- switch_data$isoformFeatures %>%
     select(isoform_id, gene_id, condition_1, condition_2, gene_name, 
          gene_biotype, iso_biotype, IF_overall, IF1,IF2, dIF, isoform_switch_q_value) %>%
@@ -130,6 +133,13 @@ server <- function(input, output, session) {
     searchBarServer("searchBar6", autocomplete_list)
     searchBarServer("searchBar7", autocomplete_list)
     searchBarServer("searchBar8", autocomplete_list)
+    
+    
+    updateTabsetPanel(session, "TabsetCount", selected = "Query Gene Level")
+    updateTabsetPanel(session, "TabsetDGE", selected = "Query")
+    updateTabsetPanel(session, "TabsetDTE", selected = "Query")
+    updateTabsetPanel(session, "TabsetDTU", selected = "Query")
+    
     
   })
   
@@ -238,7 +248,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextCount <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tabs (at gene or transcript level) to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tabs (at gene or transcript level) contain detailed information on it.")
     } else {
       ""
     }
@@ -431,7 +441,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDGE <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
@@ -482,6 +492,10 @@ server <- function(input, output, session) {
     if (search_term() != "") {
       data <- DGEall
       data <- data %>% filter(gene_id == search_term() | gene_name == search_term())
+      # Apply padj filter if not "NONE"
+      if (input$padj_threshold_DGEQuery != "NONE") {
+        data <- data %>% filter(padj <= as.numeric(input$padj_threshold_DGEQuery))
+      }
       return(data)
     } else {
       NULL
@@ -544,6 +558,7 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
+      padj_threshold = input$padj_threshold_DGEQuery,
       dataAll = DGEall,
       cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )
@@ -568,7 +583,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDTE <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
@@ -677,6 +692,7 @@ server <- function(input, output, session) {
     req(search_term() != "")
     list(
       search_term = search_term(),
+      padj_threshold = input$padj_threshold_DTEQuery,
       dataAll = DTEall,
       cancer_types = c("Melanoma", "Lung", "Prostate", "Glioblastoma")
     )
@@ -699,7 +715,7 @@ server <- function(input, output, session) {
   # Text to display which gene has been searched and giving info to click on the query sub-tab.
   output$SelectedGeneTextDTU <- renderUI({
     if (search_term() != ""){
-      paste0("Currently selected gene: ", search_term(), ". Please click on the \"Query\" tab to get detailed information on it.")
+      paste0("Currently selected gene: ", search_term(), ". The \"Query\" tab contains detailed information on it.")
     } else {
       ""
     }
