@@ -40,10 +40,10 @@ switchPlotServer <- function(id, switch_data, search_term, validity) { # without
           
           # check table if data available
           checkTable <- switch_data$isoformFeatures %>% 
-            mutate(maxIFval = max(IF1,IF2)) %>%
             dplyr::filter(condition_1 == cond1, 
-                          (gene_id == search_term | gene_name == search_term), 
-                          maxIFval > 0.05)
+                          (gene_id == search_term | gene_name == search_term)) %>%
+            dplyr::mutate(maxIFval = max(IF1,IF2)) %>% 
+            dplyr::filter(maxIFval > 0.05)
           
           # plot if data are available in checkTable
           if (nrow(checkTable) > 0){

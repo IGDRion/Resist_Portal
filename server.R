@@ -52,6 +52,21 @@ library(tidyr)
 # Bootstrap 4
 theme <- bslib::bs_theme(version = 4)
 
+# DT render to take care of NA when sorting columns
+render_function <- function() {
+  JS("
+    function(data, type, row, meta) {
+      if (type === 'display') {
+        return data === null ? 'NA' : data;
+      }
+      if (type === 'sort') {
+        return data === null ? -Infinity : data;
+      }
+      return data;
+    }
+  ")
+}
+
 # Set directory to the src directory of the app so that the path
 # is correctly resolved later (otherwise they won't be found)
 setwd(getSrcDirectory(function(){})[1])
@@ -506,9 +521,15 @@ server <- function(input, output, session) {
   # Render the filtered DGE table of All genes
   output$DGETableAll <- renderDT({
     datatable(filtered_DGE_data_All() %>%
-                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                             columnDefs = list(
+                               list(
+                                 targets = '_all',
+                                 render = render_function()
+                               )
+                             )
+              ),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
                   target = 'cell',
@@ -521,9 +542,15 @@ server <- function(input, output, session) {
   # Render the DGE table for the query gene (4 rows, one per cancer)
   output$DGETableQuery <- renderDT({
     datatable(filtered_DGE_data_Query() %>% 
-                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                               columnDefs = list(
+                                 list(
+                                   targets = '_all',
+                                   render = render_function()
+                                 )
+                               )
+                ),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
                   target = 'cell',
@@ -650,9 +677,15 @@ server <- function(input, output, session) {
   
   output$DTETableAll <- renderDT({
     datatable(filtered_DTE_data_All() %>% 
-                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                               columnDefs = list(
+                                 list(
+                                   targets = '_all',
+                                   render = render_function()
+                                 )
+                               )
+                ),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
                   target = 'cell',
@@ -665,9 +698,15 @@ server <- function(input, output, session) {
     # Render the DTE table for the query gene (4 rows, one per cancer)
   output$DTETableQuery <- renderDT({
     datatable(filtered_DTE_data_Query() %>% 
-                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !padj, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                               columnDefs = list(
+                                 list(
+                                   targets = '_all',
+                                   render = render_function()
+                                 )
+                               )
+                ),
               rownames = FALSE) %>%
       formatStyle(columns = 'cancer',
                   target = 'cell',
@@ -786,17 +825,29 @@ server <- function(input, output, session) {
   
   output$DTUTableAll <- renderDT({
     datatable(filtered_DTU_data_All() %>%
-                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                               columnDefs = list(
+                                 list(
+                                   targets = '_all',
+                                   render = render_function()
+                                 )
+                               )
+                ),
               rownames = FALSE)
   })
   
   output$DTUTableQuery <- renderDT({
     datatable(filtered_DTU_data_Query()%>%
-                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))) %>%
-                mutate(across(everything(), ~ifelse(is.na(.), "NA", as.character(.)))),
-              options = list(ordering = TRUE, pageLength = 10),
+                mutate(across(where(is.numeric) & !isoform_switch_q_value, ~round(., digits = 3))),
+                options = list(ordering = TRUE, pageLength = 10,
+                               columnDefs = list(
+                                 list(
+                                   targets = '_all',
+                                   render = render_function()
+                                 )
+                               )
+                ),
               rownames = FALSE)
   })
   
